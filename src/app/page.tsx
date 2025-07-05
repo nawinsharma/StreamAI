@@ -195,7 +195,11 @@ export default function Home() {
             )}
 
             {/* Messages */}
-            {elements}
+            {elements.map((element, index) => (
+              <div key={`message-${index}`}>
+                {element}
+              </div>
+            ))}
             
             {/* Loading Indicator */}
             {isLoading && <AISkeletonLoading />}
