@@ -56,7 +56,7 @@ export default function Home() {
 
     const fileSizeInMB = file.size / (1024 * 1024);
     if (fileSizeInMB > 1) {
-      ErrorHandler.handleValidationError("File size", `File size must be less than 1MB. Current size: ${fileSizeInMB.toFixed(2)}MB`);
+      toast.error(`File size must be less than 1MB. Current size: ${fileSizeInMB.toFixed(2)}MB`);
       return;
     }
 
@@ -111,7 +111,13 @@ export default function Home() {
       setSelectedFile(undefined);
     } catch (error) {
       console.error("Error sending message:", error);
-      ErrorHandler.handleGeneralError(error instanceof Error ? error : "Failed to send message", "Message sending");
+      
+      // Check if it's a body size limit error
+      if (error instanceof Error && error.message.includes("Body exceeded 1 MB limit")) {
+        toast.error("File size too large. Please select a smaller image file (under 1MB).");
+      } else {
+        ErrorHandler.handleGeneralError(error instanceof Error ? error : "Failed to send message", "Message sending");
+      }
     } finally {
       setIsLoading(false);
     }

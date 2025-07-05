@@ -4,35 +4,12 @@ import { AIMessageComponent } from "@/components/message";
 
 export const AudioLoading = () => (
   <AIMessageComponent>
-    <div className="w-96 bg-gradient-to-br from-purple-50 to-blue-50 rounded-2xl p-6 border border-purple-200/50 shadow-lg">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 rounded-xl  flex items-center justify-center shadow-lg">
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-            </svg>
-          </div>
-          <div className="space-y-2">
-            <div className="h-4 bg-gradient-to-r from-purple-200 to-blue-200 rounded-full animate-pulse w-32"></div>
-            <div className="h-3 bg-gradient-to-r from-purple-100 to-blue-100 rounded-full animate-pulse w-24"></div>
-          </div>
-        </div>
-        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-200 to-blue-200 animate-pulse"></div>
-      </div>
-      
-      <div className="space-y-3">
-        <div className="h-2 bg-gradient-to-r from-purple-200 to-blue-200 rounded-full animate-pulse"></div>
-        <div className="h-2 bg-gradient-to-r from-purple-200 to-blue-200 rounded-full animate-pulse w-3/4"></div>
-        <div className="h-2 bg-gradient-to-r from-purple-200 to-blue-200 rounded-full animate-pulse w-1/2"></div>
-      </div>
-      
-      <div className="mt-4 flex items-center justify-between">
-        <div className="flex space-x-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-purple-200 to-blue-200 animate-pulse"></div>
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-purple-200 to-blue-200 animate-pulse"></div>
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-purple-200 to-blue-200 animate-pulse"></div>
-        </div>
-        <div className="h-6 bg-gradient-to-r from-purple-200 to-blue-200 rounded-full animate-pulse w-16"></div>
+    <div className="px-6 py-4 rounded-3xl rounded-bl-lg bg-gradient-to-br from-gray-50 to-gray-100 text-gray-900 shadow-lg border border-gray-200/50 backdrop-blur-sm">
+      <div className="text-sm leading-relaxed font-medium">
+        <span className="animate-pulse">Generating audio</span>
+        <span className="animate-pulse" style={{ animationDelay: '0.2s' }}>.</span>
+        <span className="animate-pulse" style={{ animationDelay: '0.4s' }}>.</span>
+        <span className="animate-pulse" style={{ animationDelay: '0.6s' }}>.</span>
       </div>
     </div>
   </AIMessageComponent>
