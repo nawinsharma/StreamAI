@@ -54,7 +54,7 @@ const SuggestionQuestions = ({ onQuestionClick }: { onQuestionClick: (question: 
           {suggestions.map((suggestion, index) => (
             <Button
               key={`first-${index}`}
-              onClick={() => onQuestionClick(suggestion, true)}
+              onClick={() => onQuestionClick(suggestion, false)}
               variant="outline"
               size="sm"
               className="rounded-full transition-all duration-300 hover:scale-105 hover:shadow-md hover:shadow-primary/20 active:scale-95 hover:bg-primary/5 hover:border-primary/30 hover:text-primary whitespace-nowrap flex-shrink-0"
@@ -67,7 +67,7 @@ const SuggestionQuestions = ({ onQuestionClick }: { onQuestionClick: (question: 
           {suggestions.map((suggestion, index) => (
             <Button
               key={`second-${index}`}
-              onClick={() => onQuestionClick(suggestion, true)}
+              onClick={() => onQuestionClick(suggestion, false)}
               variant="outline"
               size="sm"
               className="rounded-full transition-all duration-300 hover:scale-105 hover:shadow-md hover:shadow-primary/20 active:scale-95 hover:bg-primary/5 hover:border-primary/30 hover:text-primary whitespace-nowrap flex-shrink-0"
