@@ -116,6 +116,7 @@ Process and analyze document content.
 - Node.js 18+ 
 - pnpm (recommended) or npm
 - OpenAI API key
+- Google AI API key (for image generation)
 - Optional: Tavily API key for web search
 - Optional: Weather API key for weather data
 
@@ -136,6 +137,7 @@ Process and analyze document content.
    Create a `.env.local` file in the root directory:
    ```env
    OPENAI_API_KEY=your_openai_api_key_here
+   GOOGLE_AI_API_KEY=your_google_ai_api_key_here
    TAVILY_API_KEY=your_tavily_api_key_here
    WEATHER_API_KEY=your_weather_api_key_here
    ```
@@ -180,7 +182,7 @@ src/
 - **Frontend**: Next.js 15, React 19, TypeScript
 - **Styling**: Tailwind CSS
 - **AI Framework**: LangChain, LangGraph
-- **AI Provider**: OpenAI GPT-4 Turbo
+- **AI Provider**: OpenAI GPT-4 Turbo (text), Google AI Gemini (images - placeholder)
 - **UI Components**: Lucide React, Sonner (toasts)
 - **Charts**: Chart.js
 - **Package Manager**: pnpm
@@ -192,11 +194,20 @@ src/
 | Variable | Description | Required |
 |----------|-------------|----------|
 | `OPENAI_API_KEY` | OpenAI API key for AI model access | Yes |
+| `GOOGLE_AI_API_KEY` | Google AI API key for image generation (placeholder) | No |
 | `TAVILY_API_KEY` | Tavily API key for web search | No |
 | `WEATHER_API_KEY` | Weather API key for weather data | No |
 
 ### API Keys Setup
 
 1. **OpenAI API Key**: Get from [OpenAI Platform](https://platform.openai.com/api-keys)
-2. **Tavily API Key**: Get from [Tavily](https://tavily.com/) for enhanced web search
-3. **Weather API Key**: Get from [WeatherAPI.com](https://www.weatherapi.com/) for weather data
+2. **Google AI API Key**: Get from [Google AI Studio](https://aistudio.google.com/) (currently placeholder for image generation)
+3. **Tavily API Key**: Get from [Tavily](https://tavily.com/) for enhanced web search
+4. **Weather API Key**: Get from [WeatherAPI.com](https://www.weatherapi.com/) for weather data
+
+### Note on Image Generation
+
+The image generation feature currently uses a placeholder implementation for Google AI. For production use, you may want to:
+- Use OpenAI DALL-E for image generation
+- Wait for Google's image generation API to become more widely available
+- Integrate with other image generation services
