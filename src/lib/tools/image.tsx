@@ -3,45 +3,54 @@ import { RunnableConfig } from "@langchain/core/runnables";
 import { dispatchCustomEvent } from "@langchain/core/callbacks/dispatch/web";
 import { z } from "zod";
 import { CUSTOM_EVENT_NAME } from "@/app/server";
-import { DallEIamgeLoading, DalleImage } from "@/components/ui/image";
-import OpenAI from "openai";
+import { GeminiImageLoading, GeminiImage } from "@/components/ui/image";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ErrorHandler, createToolError } from "@/lib/error-handler";
 
 const imageSchema = z.object({
   prompt: z.string().describe("Prompt to generate an image"),
 });
 
-async function dalleData(input: z.infer<typeof imageSchema>) {
+async function geminiImageData(input: z.infer<typeof imageSchema>): Promise<string> {
   try {
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
+    const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY || "");
 
-    if (!process.env.OPENAI_API_KEY) {
-      throw new Error("OpenAI API key is not configured");
+    if (!process.env.GOOGLE_AI_API_KEY) {
+      throw new Error("Google AI API key is not configured");
     }
+    
+    throw new Error("Image generation with Google AI requires additional setup. Please use OpenAI DALL-E or another image generation service for now.");
+    
+    // Placeholder code for when Google's image generation API is available:
+    /*
+    const model = genAI.getGenerativeModel({ model: "imagen-2" });
+    
+    const result = await model.generateContent([
+      input.prompt,
+    ]);
 
-    const response = await openai.images.generate({
-      model: "dall-e-2",
-      prompt: input.prompt,
-      n: 1,
-      size: "512x512",
-    });
-
-    if (response.data && response.data.length > 0) {
-      return response.data[0].url;
-    } else {
-      throw new Error("No image URL returned from DALL-E API");
+    const response = await result.response;
+    
+    if (response.candidates && response.candidates.length > 0) {
+      const candidate = response.candidates[0];
+      if (candidate.content && candidate.content.parts && candidate.content.parts.length > 0) {
+        const part = candidate.content.parts[0];
+        if (part.inlineData && part.inlineData.data) {
+          const mimeType = part.inlineData.mimeType || "image/png";
+          return `data:${mimeType};base64,${part.inlineData.data}`;
+        }
+      }
     }
+    */
   } catch (error) {
-    console.error("DALL-E API Error:", error);
+    console.error("Google AI API Error:", error);
     
     // Handle specific API errors
     if (error instanceof Error) {
       if (error.message.includes("API key")) {
-        ErrorHandler.handleAPIError(error, "OpenAI");
+        ErrorHandler.handleAPIError(error, "Google AI");
       } else if (error.message.includes("rate limit")) {
-        ErrorHandler.handleAPIError(error, "OpenAI");
+        ErrorHandler.handleAPIError(error, "Google AI");
       } else {
         ErrorHandler.handleToolError(createToolError("ImageGenerationTool", error.message, error));
       }
@@ -57,7 +66,7 @@ export const imageTool = tool(
       CUSTOM_EVENT_NAME,
       {
         output: {
-          value: <DallEIamgeLoading />,
+          value: <GeminiImageLoading />,
           type: "append",
         },
       },
@@ -65,13 +74,13 @@ export const imageTool = tool(
     );
 
     try {
-      const url = await dalleData(input);
+      const url = await geminiImageData(input);
 
       await dispatchCustomEvent(
         CUSTOM_EVENT_NAME,
         {
           output: {
-            value: <DalleImage url={url} />,
+            value: <GeminiImage url={url} />,
             type: "update",
           },
         },
@@ -85,7 +94,7 @@ export const imageTool = tool(
         CUSTOM_EVENT_NAME,
         {
           output: {
-            value: <DalleImage url={undefined} />,
+            value: <GeminiImage url={undefined} />,
             type: "update",
           },
         },
@@ -101,7 +110,7 @@ export const imageTool = tool(
   {
     name: "ImageGenerationTool",
     description:
-      "Generate an AI-generated image based on the provided text prompt, using DALL·E with customizable model version, image size, and quantity.",
+      "Generate an AI-generated image based on the provided text prompt. Note: Currently using placeholder implementation for Google AI image generation.",
     schema: imageSchema,
   },
 );
