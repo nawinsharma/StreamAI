@@ -70,7 +70,7 @@ export const documentTool = tool(
         CUSTOM_EVENT_NAME,
         {
           output: {
-            value: <Document documents={[]} />,
+            value: <Document {...[]} />,
             type: "update",
           },
         },
