@@ -13,6 +13,7 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
 model User {
   id            String       @id @default(uuid())
   email         String    @unique
@@ -23,6 +24,7 @@ model User {
   updatedAt     DateTime
   sessions      Session[]
   accounts      Account[]
+  chats         Chat[]
 
   @@map("user")
 }
@@ -70,4 +72,27 @@ model Verification {
   updatedAt  DateTime?
 
   @@map("verification")
+}
+
+model Chat {
+  id        String    @id @default(uuid())
+  title     String
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  Message[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("chat")
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  content   String
+  role      String   // "user" or "assistant"
+  chatId    String
+  chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@map("message")
 }
