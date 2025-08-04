@@ -23,9 +23,9 @@ interface AgentExecutorStore {
   result?: string;
   toolCall?: {
     name: string;
-    parameters: Record<string, any>;
+    parameters: Record<string, unknown>;
   };
-  toolResult?: Record<string, any>;
+  toolResult?: Record<string, unknown>;
   error?: string;
 }
 
@@ -133,7 +133,7 @@ const invokeTools = async (
       throw new Error(`Tool '${state.toolCall.name}' not found`);
     }
 
-    const toolResult = await (selectedTool as any).invoke(
+    const toolResult = await (selectedTool as { invoke: (params: unknown, config?: RunnableConfig) => Promise<unknown> }).invoke(
       state.toolCall.parameters,
       config,
     );

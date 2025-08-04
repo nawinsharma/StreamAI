@@ -11,8 +11,10 @@ const imageSchema = z.object({
   prompt: z.string().describe("Prompt to generate an image"),
 });
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function geminiImageData(input: z.infer<typeof imageSchema>): Promise<string> {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY || "");
 
     if (!process.env.GOOGLE_AI_API_KEY) {

@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Header } from "@/components/ui/Header";
 import { useChatStore } from "@/lib/chat-store";
 import { useUser } from "@/context/UserContext";
+import Image from "next/image";
 
 const convertFileToBase64 = (file: File): Promise<string> =>
   new Promise((resolve, reject) => {
@@ -226,9 +227,11 @@ export default function Home() {
       <div className="message-enter animate-in slide-in-from-bottom-4 duration-500">
         {selectedFile && (
           <div className="mb-4 rounded-xl overflow-hidden border border-border/50 shadow-lg">
-            <img
+            <Image
               src={URL.createObjectURL(selectedFile)}
               alt="Uploaded image"
+              width={800}
+              height={600}
               className="w-full max-w-2xl h-auto object-cover"
             />
           </div>

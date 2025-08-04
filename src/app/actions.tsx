@@ -60,48 +60,51 @@ async function sendMessage(input: InputProps) {
 
   try {
     const processInputs = processFile(input, messages.get() as CoreMessage[]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const streamUI = streamRunnableUI(agentExecutor() as any, processInputs);
 
     (async () => {
       try {
-        let lastEvent = await streamUI.lastEvent;
+        const lastEvent = await streamUI.lastEvent;
 
         if (typeof lastEvent === "object" && lastEvent !== null) {
+          const event = lastEvent as { invokeModel?: { error?: string; result?: string }; invokeTools?: { error?: string; toolResult?: unknown } };
+          
           // Check if there's an error
-          if (lastEvent.invokeModel && lastEvent.invokeModel.error) {
+          if (event.invokeModel && event.invokeModel.error) {
             messages.done([
               ...(messages.get() as CoreMessage[]),
               { role: "user", content: input.prompt },
-              { role: "assistant", content: `I encountered an error: ${lastEvent.invokeModel.error}` },
+              { role: "assistant", content: `I encountered an error: ${event.invokeModel.error}` },
             ]);
             return;
           }
           
-          if (lastEvent.invokeTools && lastEvent.invokeTools.error) {
+          if (event.invokeTools && event.invokeTools.error) {
             messages.done([
               ...(messages.get() as CoreMessage[]),
               { role: "user", content: input.prompt },
-              { role: "assistant", content: `I encountered an error while using a tool: ${lastEvent.invokeTools.error}` },
+              { role: "assistant", content: `I encountered an error while using a tool: ${event.invokeTools.error}` },
             ]);
             return;
           }
 
           // Check if it's a model result
-          if (lastEvent.invokeModel && lastEvent.invokeModel.result) {
+          if (event.invokeModel && event.invokeModel.result) {
             messages.done([
               ...(messages.get() as CoreMessage[]),
               { role: "user", content: input.prompt },
-              { role: "assistant", content: lastEvent.invokeModel.result },
+              { role: "assistant", content: event.invokeModel.result },
             ]);
           } 
           // Check if it's a tool result
-          else if (lastEvent.invokeTools && lastEvent.invokeTools.toolResult) {
+          else if (event.invokeTools && event.invokeTools.toolResult) {
             messages.done([
               ...(messages.get() as CoreMessage[]),
               { role: "user", content: input.prompt },
               {
                 role: "assistant",
-                content: `Total result: ${JSON.stringify(lastEvent.invokeTools.toolResult, null, 2)}`,
+                content: `Total result: ${JSON.stringify(event.invokeTools.toolResult, null, 2)}`,
               },
             ]);
           } 

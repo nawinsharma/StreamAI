@@ -1,5 +1,5 @@
-const gTTS = require("gtts");
-const shortid = require("shortid");
+import gTTS from "gtts";
+import shortid from "shortid";
 import { tool } from "@langchain/core/tools";
 import { RunnableConfig } from "@langchain/core/runnables";
 import { dispatchCustomEvent } from "@langchain/core/callbacks/dispatch/web";
@@ -18,7 +18,7 @@ async function audioFile(input: z.infer<typeof audioSchema>): Promise<string> {
       const uniqueID = shortid.generate();
       const gtts = new gTTS(input.prompt, "en");
 
-      gtts.save(`./public/${uniqueID}.mp3`, function (err: any) {
+      gtts.save(`./public/${uniqueID}.mp3`, function (err: Error | null) {
         if (err) {
           console.error("gTTS error:", err);
           ErrorHandler.handleToolError(createToolError("AudioGenerationTool", err.message || "Failed to generate audio file", err));

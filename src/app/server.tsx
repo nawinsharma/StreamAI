@@ -18,7 +18,7 @@ export function streamRunnableUI<RunInput, RunOutput>(
   inputs: RunInput,
 ) {
   const ui = createStreamableUI();
-  const [lastEvent, resolve] = withResolvers<any>();
+  const [lastEvent, resolve] = withResolvers<unknown>();
 
   (async () => {
     let lastEventValue: StreamEvent | null = null;
@@ -28,7 +28,7 @@ export function streamRunnableUI<RunInput, RunOutput>(
       ReturnType<typeof createStreamableUI | typeof createStreamableValue>
     > = {};
 
-    for await (const streamEvent of (runnable as any).streamEvents(inputs, {
+    for await (const streamEvent of (runnable as { streamEvents: (inputs: RunInput, config: { version: string }) => AsyncIterable<StreamEvent> }).streamEvents(inputs, {
       version: "v2",
     })) {
       if (
@@ -70,13 +70,13 @@ export function streamRunnableUI<RunInput, RunOutput>(
 
 export function withResolvers<T>() {
   let resolve: (value: T) => void;
-  let reject: (reason?: any) => void;
+  let reject: (reason?: unknown) => void;
 
   const innerPromise = new Promise<T>((res, rej) => {
     resolve = res;
     reject = rej;
   });
 
-  // @ts-expect-error
+  // @ts-expect-error - TypeScript doesn't understand that resolve and reject are assigned in the Promise constructor
   return [innerPromise, resolve, reject] as const;
 }

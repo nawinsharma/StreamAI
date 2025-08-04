@@ -22,7 +22,7 @@ interface HeaderProps {
 
 export function Header({ onNewChat }: HeaderProps) {
   const router = useRouter();
-  const { chatCount, getRemainingChats, isLimitReached } = useChatStore();
+  const { getRemainingChats, isLimitReached } = useChatStore();
   const user = useUser();
   const remainingChats = getRemainingChats();
   const limitReached = isLimitReached();
@@ -36,7 +36,7 @@ export function Header({ onNewChat }: HeaderProps) {
       await authClient.signOut();
       toast.success("Successfully signed out!");
       window.location.reload();
-    } catch (error) {
+    } catch {
       toast.error("Failed to sign out");
     }
   };

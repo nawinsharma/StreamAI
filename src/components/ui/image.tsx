@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { AIMessageComponent, AIMessageText } from "@/components/message";
 
 export const GeminiImageLoading = () => (
@@ -40,9 +41,11 @@ export const GeminiImage = ({ url }: { url: string | undefined }) => (
           </div>
           
           <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-inner border border-blue-100 dark:border-blue-700/30">
-            <img 
+            <Image 
               src={url} 
               alt="AI generated image" 
+              width={400}
+              height={300}
               className="w-full h-auto rounded-lg shadow-sm"
               loading="lazy"
             />

@@ -74,7 +74,7 @@ export default function LoginDialog({ isOpen, onClose }: LoginDialogProps) {
                toast.error(ctx.error.message)
             },
          })
-      } catch (error) {
+      } catch {
          toast.error("Failed to sign in")
       } finally {
          setIsLoading(false)
@@ -84,10 +84,10 @@ export default function LoginDialog({ isOpen, onClose }: LoginDialogProps) {
    const handleGoogleSignIn = async () => {
       setIsLoading(true)
       try {
-         const result = await signInWithGoogle()
+         await signInWithGoogle()
          toast.success("Successfully signed in!")
          window.location.reload(); // Force reload to update user context
-      } catch (error) {
+      } catch {
          toast.error("Failed to sign in with Google")
       } finally {
          setIsLoading(false)
@@ -99,7 +99,7 @@ export default function LoginDialog({ isOpen, onClose }: LoginDialogProps) {
          await authClient.signOut()
          toast.success("Successfully signed out!")
          onClose()
-      } catch (error) {
+      } catch {
          toast.error("Failed to sign out")
       }
    }
@@ -185,7 +185,7 @@ export default function LoginDialog({ isOpen, onClose }: LoginDialogProps) {
                   <CardHeader className="text-center">
                      <CardTitle className="text-xl">Welcome, {user.name || user.email}!</CardTitle>
                      <CardDescription>
-                        You're signed in and can continue using our AI assistant.
+                        You&apos;re signed in and can continue using our AI assistant.
                      </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">

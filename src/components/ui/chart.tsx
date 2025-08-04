@@ -143,7 +143,7 @@ export const ChartJS = (props: ChartJSProps) => {
         chartInstanceRef.current = null;
       }
     };
-  }, []);
+  }, [backgroundColor, props.data, props.title, props.type]);
 
   return (
     <AIMessageComponent>
