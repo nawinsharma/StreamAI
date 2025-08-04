@@ -1,0 +1,231 @@
+"use client"
+
+import { useState } from "react"
+import { signInWithGoogle } from "@/actions/authAction"
+import { Button } from "@/components/ui/button"
+import {
+   Card,
+   CardContent,
+   CardDescription,
+   CardFooter,
+   CardHeader,
+   CardTitle,
+} from "@/components/ui/card"
+import {
+   Form,
+   FormControl,
+   FormField,
+   FormItem,
+   FormLabel,
+   FormMessage,
+} from "@/components/ui/form"
+import { Input } from "@/components/ui/input"
+import { authClient } from "@/lib/auth-client"
+import { signInFormSchema } from "@/lib/auth-schema"
+import { useUser } from "@/context/UserContext"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
+import { toast } from "sonner"
+import { z } from "zod"
+import {
+   DropdownMenu,
+   DropdownMenuContent,
+   DropdownMenuItem,
+   DropdownMenuSeparator,
+   DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+
+interface LoginDialogProps {
+   isOpen: boolean
+   onClose: () => void
+}
+
+export default function LoginDialog({ isOpen, onClose }: LoginDialogProps) {
+   const user = useUser()
+   const [isLoading, setIsLoading] = useState(false)
+
+   const form = useForm<z.infer<typeof signInFormSchema>>({
+      resolver: zodResolver(signInFormSchema),
+      defaultValues: {
+         email: "",
+         password: "",
+      },
+   })
+
+   async function onSubmit(values: z.infer<typeof signInFormSchema>) {
+      setIsLoading(true)
+      const { email, password } = values
+      
+      try {
+         await authClient.signIn.email({
+            email,
+            password,
+         }, {
+            onRequest: () => {
+               toast("Signing in...")
+            },
+            onSuccess: () => {
+               form.reset()
+               toast.success("Successfully signed in!")
+               window.location.reload(); // Force reload to update user context
+            },
+            onError: (ctx) => {
+               toast.error(ctx.error.message)
+            },
+         })
+      } catch (error) {
+         toast.error("Failed to sign in")
+      } finally {
+         setIsLoading(false)
+      }
+   }
+
+   const handleGoogleSignIn = async () => {
+      setIsLoading(true)
+      try {
+         const result = await signInWithGoogle()
+         toast.success("Successfully signed in!")
+         window.location.reload(); // Force reload to update user context
+      } catch (error) {
+         toast.error("Failed to sign in with Google")
+      } finally {
+         setIsLoading(false)
+      }
+   }
+
+   const handleSignOut = async () => {
+      try {
+         await authClient.signOut()
+         toast.success("Successfully signed out!")
+         onClose()
+      } catch (error) {
+         toast.error("Failed to sign out")
+      }
+   }
+
+   if (!isOpen) return null
+
+   return (
+      <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+         <div className="w-full max-w-md">
+            {!user ? (
+               <Card>
+                  <CardHeader className="text-center">
+                     <CardTitle className="text-2xl">Welcome back</CardTitle>
+                     <CardDescription>
+                        Sign in to continue using our AI assistant with unlimited conversations.
+                     </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                     <Button 
+                        variant="outline" 
+                        className="w-full" 
+                        onClick={handleGoogleSignIn}
+                        disabled={isLoading}
+                     >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4 mr-2">
+                           <path
+                              d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"
+                              fill="currentColor"
+                           />
+                        </svg>
+                        Login with Google
+                     </Button>
+                     <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border">
+                        <span className="relative z-10 bg-background px-2 text-muted-foreground">
+                           Or continue with
+                        </span>
+                     </div>
+                     <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                           <FormField
+                              control={form.control}
+                              name="email"
+                              render={({ field }) => (
+                                 <FormItem>
+                                    <FormLabel>Email</FormLabel>
+                                    <FormControl>
+                                       <Input placeholder="m@example.com" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                 </FormItem>
+                              )}
+                           />
+                           <FormField
+                              control={form.control}
+                              name="password"
+                              render={({ field }) => (
+                                 <FormItem>
+                                    <FormLabel>Password</FormLabel>
+                                    <FormControl>
+                                       <Input type="password" placeholder="********" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                 </FormItem>
+                              )}
+                           />
+                           <Button type="submit" className="w-full" disabled={isLoading}>
+                              {isLoading ? "Signing in..." : "Sign In"}
+                           </Button>
+                        </form>
+                     </Form>
+                  </CardContent>
+                  <CardFooter className="mx-auto">
+                     <div className="text-center text-sm">
+                        Don&apos;t have an account?{" "}
+                        <a href="/sign-up" className="underline underline-offset-4">
+                           Sign up
+                        </a>
+                     </div>
+                  </CardFooter>
+               </Card>
+            ) : (
+               <Card>
+                  <CardHeader className="text-center">
+                     <CardTitle className="text-xl">Welcome, {user.name || user.email}!</CardTitle>
+                     <CardDescription>
+                        You're signed in and can continue using our AI assistant.
+                     </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                     <div className="flex items-center justify-center">
+                        <DropdownMenu>
+                           <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="relative h-12 w-12 rounded-full">
+                                 <Avatar className="h-12 w-12">
+                                    <AvatarImage src={user.image || undefined} alt={user.name || user.email} />
+                                    <AvatarFallback>
+                                       {user.name ? user.name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
+                                    </AvatarFallback>
+                                 </Avatar>
+                              </Button>
+                           </DropdownMenuTrigger>
+                           <DropdownMenuContent className="w-56" align="end" forceMount>
+                              <div className="flex items-center justify-start gap-2 p-2">
+                                 <div className="flex flex-col space-y-1 leading-none">
+                                    {user.name && <p className="font-medium">{user.name}</p>}
+                                    <p className="w-[200px] truncate text-sm text-muted-foreground">
+                                       {user.email}
+                                    </p>
+                                 </div>
+                              </div>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={handleSignOut}>
+                                 Sign out
+                              </DropdownMenuItem>
+                           </DropdownMenuContent>
+                        </DropdownMenu>
+                     </div>
+                  </CardContent>
+                  <CardFooter>
+                     <Button onClick={onClose} className="w-full">
+                        Continue
+                     </Button>
+                  </CardFooter>
+               </Card>
+            )}
+         </div>
+      </div>
+   )
+} 
