@@ -8,9 +8,9 @@ import { toast } from "sonner";
 import { ErrorHandler } from "@/lib/error-handler";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { Header } from "@/components/ui/Header";
 import { useChatStore } from "@/lib/chat-store";
+import { useUser } from "@/context/UserContext";
 
 const convertFileToBase64 = (file: File): Promise<string> =>
   new Promise((resolve, reject) => {
@@ -113,10 +113,11 @@ const QuickActions = ({ onActionClick }: { onActionClick: (action: string, shoul
 export default function Home() {
   const { sendMessage } = useActions();
   const { incrementChat, isLimitReached, getRemainingChats } = useChatStore();
+  const user = useUser();
 
   const [elements, setElements] = useState<React.ReactNode[]>([]);
   const [input, setInput] = useState("");
-  const [selectedFile, setSelectedFile] = useState<File>();
+  const [selectedFile, setSelectedFile] = useState<File | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
 
@@ -160,8 +161,8 @@ export default function Home() {
   };
 
   const handleSuggestionClick = (question: string, shouldAutoSubmit: boolean = false) => {
-    if (isLimitReached()) {
-      toast.error("You've reached your chat limit. Please upgrade to continue chatting.");
+    if (!user && isLimitReached()) {
+      toast.error("Please sign in to continue chatting.");
       return;
     }
     
@@ -182,8 +183,8 @@ export default function Home() {
   };
 
   const handleNewChat = () => {
-    if (isLimitReached()) {
-      toast.error("You've reached your chat limit. Please upgrade to continue chatting.");
+    if (!user && isLimitReached()) {
+      toast.error("Please sign in to continue chatting.");
       return;
     }
     
@@ -200,9 +201,9 @@ export default function Home() {
   async function onSubmit(prompt: string) {
     if (!prompt || isLoading) return;
 
-    // Check if limit is reached
-    if (isLimitReached()) {
-      toast.error("You've reached your chat limit. Please upgrade to continue chatting.");
+    // Check if limit is reached - only for non-authenticated users
+    if (!user && isLimitReached()) {
+      toast.error("Please sign in to continue chatting.");
       return;
     }
 
@@ -260,15 +261,17 @@ export default function Home() {
       setInput("");
       setSelectedFile(undefined);
       
-      // Increment chat count after successful message
-      incrementChat();
-      
-      // Show remaining chats warning if getting close to limit
-      const remaining = getRemainingChats();
-      if (remaining <= 2 && remaining > 0) {
-        toast.warning(`You have ${remaining} chat${remaining === 1 ? '' : 's'} remaining.`);
-      } else if (remaining === 0) {
-        toast.error("You've reached your chat limit. Please upgrade to continue chatting.");
+      // Increment chat count after successful message - only for non-authenticated users
+      if (!user) {
+        incrementChat();
+        
+        // Show remaining chats warning if getting close to limit - only for non-authenticated users
+        const remaining = getRemainingChats();
+        if (remaining <= 2 && remaining > 0) {
+          toast.warning(`You have ${remaining} chat${remaining === 1 ? '' : 's'} remaining.`);
+        } else if (remaining === 0) {
+          toast.error("Please sign in to continue chatting.");
+        }
       }
     } catch (error) {
       console.error("Error sending message:", error);
@@ -294,26 +297,6 @@ export default function Home() {
 
       {/* Main Chat Area */}
       <main className={`flex-1 flex flex-col max-w-7xl mx-auto w-full pt-20 ${hasInteracted ? '' : 'justify-center'}`}>
-        {/* Limit Reached Overlay */}
-        {limitReached && (
-          <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 flex items-center justify-center">
-            <div className="bg-background border border-border rounded-xl p-8 max-w-md mx-4 text-center shadow-2xl">
-              <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold text-foreground mb-2">Chat Limit Reached</h3>
-              <p className="text-muted-foreground mb-6">
-                You've used all 5 free chats. Upgrade to continue using our AI assistant with unlimited conversations.
-              </p>
-              <Button className="w-full">
-                Upgrade Now
-              </Button>
-            </div>
-          </div>
-        )}
-
         {/* Messages Container - Only show when there are messages or user is typing */}
         {hasInteracted && (
           <div 
@@ -390,7 +373,7 @@ export default function Home() {
               size="icon"
               className="rounded-xl"
               title="Upload image"
-              disabled={limitReached}
+              disabled={!user && limitReached}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
@@ -415,14 +398,14 @@ export default function Home() {
                 ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder={limitReached ? "Chat limit reached" : "Ask anything..."}
+                placeholder={!user && limitReached ? "Chat limit reached" : "Ask anything..."}
                 className="min-h-[44px] max-h-32 resize-none rounded-xl"
                 rows={1}
-                disabled={limitReached}
+                disabled={!user && limitReached}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
-                    if (!limitReached) {
+                    if (!(!user && limitReached)) {
                       formRef.current?.requestSubmit();
                     }
                   }
@@ -440,10 +423,10 @@ export default function Home() {
             {/* Send Button */}
             <Button
               type="submit"
-              disabled={!input.trim() || isLoading || limitReached}
+              disabled={!input.trim() || isLoading || (!user && limitReached)}
               size="icon"
               className="rounded-xl"
-              title={limitReached ? "Chat limit reached" : "Send message"}
+              title={!user && limitReached ? "Chat limit reached" : "Send message"}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
@@ -481,6 +464,33 @@ export default function Home() {
           )}
         </div>
       </main>
+
+      {/* Trial Expired Dialog */}
+      {limitReached && !user && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-8 rounded-lg shadow-xl max-w-md w-full">
+            <h3 className="text-xl font-semibold text-center mb-4">Trial Expired</h3>
+            <p className="text-muted-foreground text-center mb-6">
+              Your free trial has expired. Please sign in to continue using Auralux.
+            </p>
+            <div className="flex gap-3">
+              <Button
+                onClick={() => window.location.href = '/sign-in'}
+                className="flex-1"
+              >
+                Sign In
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => window.location.reload()}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

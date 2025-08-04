@@ -4,6 +4,8 @@ import "./globals.css";
 import { AI } from "./actions";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/theme-provider";
+import UserProviderWrapper from "@/components/user-provider";
+import { getUser } from "@/lib/get-user";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,21 +22,25 @@ export const metadata: Metadata = {
   description: "Modern AI chat interface with multimodal capabilities",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const user = await getUser();
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
         <ThemeProvider>
-          <AI>
-            {children}
-          </AI>
-          <Toaster position="top-right" richColors />
+          <UserProviderWrapper initialUser={user}>
+            <AI>
+              {children}
+            </AI>
+            <Toaster position="top-right" richColors />
+          </UserProviderWrapper>
         </ThemeProvider>
       </body>
     </html>
