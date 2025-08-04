@@ -261,7 +261,7 @@ export default function Home() {
       <Header onNewChat={handleNewChat} />
 
       {/* Main Chat Area */}
-      <main className={`flex-1 flex flex-col max-w-7xl mx-auto w-full ${hasInteracted ? '' : 'justify-center'}`}>
+      <main className={`flex-1 flex flex-col max-w-7xl mx-auto w-full pt-20 ${hasInteracted ? '' : 'justify-center'}`}>
         {/* Messages Container - Only show when there are messages or user is typing */}
         {hasInteracted && (
           <div 
