@@ -46,7 +46,7 @@ export function Header({ onNewChat }: HeaderProps) {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/50 shadow-lg shadow-black/5 dark:shadow-black/20">
+    <header className="relative z-40 bg-background/80 backdrop-blur-xl border-b border-border/50 shadow-lg shadow-black/5 dark:shadow-black/20">
       <div className="max-w-7xl mx-auto flex items-center justify-between w-full px-6 py-4 h-20">
         <div className="flex items-center space-x-3">
           <button 

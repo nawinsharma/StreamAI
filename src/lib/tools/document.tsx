@@ -35,12 +35,18 @@ export const documentTool = tool(
 
       const retrievedDocuments = await retriever.invoke(input.prompt);
 
+      // Convert Document objects to plain objects for client-side rendering
+      const plainDocuments = retrievedDocuments.map(doc => ({
+        pageContent: doc.pageContent,
+        metadata: doc.metadata
+      }));
+
       await dispatchCustomEvent(
         CUSTOM_EVENT_NAME,
         {
           output: {
             value: (
-              <Document {...JSON.parse(JSON.stringify(retrievedDocuments))} />
+              <Document documents={plainDocuments} />
             ),
             type: "update",
           },
@@ -70,7 +76,7 @@ export const documentTool = tool(
         CUSTOM_EVENT_NAME,
         {
           output: {
-            value: <Document {...[]} />,
+            value: <Document documents={[]} />,
             type: "update",
           },
         },

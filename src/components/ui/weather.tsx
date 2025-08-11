@@ -84,7 +84,7 @@ interface WeatherAPIResponse {
 
 export const WeatherLoading = () => (
   <AIMessageComponent>
-    <div className="bg-gradient-to-br from-sky-50 to-blue-50 dark:from-gray-900/10 dark:to-gray-900/20 rounded-2xl p-6 border border-sky-200/50 dark:border-sky-600/30 shadow-lg max-w-md">
+    <div className="bg-gradient-to-br from-sky-50 to-blue-50 rounded-2xl p-6 border border-sky-200/50 shadow-lg max-w-md">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-3">
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-sky-500 to-blue-500 flex items-center justify-center shadow-lg">
@@ -93,18 +93,18 @@ export const WeatherLoading = () => (
             </svg>
           </div>
           <div className="space-y-2">
-            <div className="h-4 bg-gradient-to-r from-sky-200 to-blue-200 dark:from-sky-700 dark:to-blue-700 rounded-full animate-pulse w-32"></div>
-            <div className="h-3 bg-gradient-to-r from-sky-100 to-blue-100 dark:from-sky-600 dark:to-blue-600 rounded-full animate-pulse w-24"></div>
+            <div className="h-4 bg-gradient-to-r from-sky-200 to-blue-200 rounded-full animate-pulse w-32"></div>
+            <div className="h-3 bg-gradient-to-r from-sky-100 to-blue-100 rounded-full animate-pulse w-24"></div>
           </div>
         </div>
-        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-sky-200 to-blue-200 dark:from-sky-700 dark:to-blue-700 animate-pulse"></div>
+        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-sky-200 to-blue-200 animate-pulse"></div>
       </div>
       
       <div className="space-y-4">
         <div className="space-y-3">
-          <div className="h-4 bg-gradient-to-r from-sky-200 to-blue-200 dark:from-sky-700 dark:to-blue-700 rounded-full animate-pulse w-full"></div>
-          <div className="h-4 bg-gradient-to-r from-sky-200 to-blue-200 dark:from-sky-700 dark:to-blue-700 rounded-full animate-pulse w-3/4"></div>
-          <div className="h-4 bg-gradient-to-r from-sky-200 to-blue-200 dark:from-sky-700 dark:to-blue-700 rounded-full animate-pulse w-1/2"></div>
+          <div className="h-4 bg-gradient-to-r from-sky-200 to-blue-200 rounded-full animate-pulse w-full"></div>
+          <div className="h-4 bg-gradient-to-r from-sky-200 to-blue-200 rounded-full animate-pulse w-3/4"></div>
+          <div className="h-4 bg-gradient-to-r from-sky-200 to-blue-200 rounded-full animate-pulse w-1/2"></div>
         </div>
       </div>
     </div>
@@ -115,8 +115,8 @@ export const Weather = (props: WeatherAPIResponse) => (
   <>
     {props && props.location && props.current ? (
       <AIMessageComponent>
-        <div className="bg-gradient-to-br from-sky-50 to-blue-50 dark:from-sky-900/20 dark:to-blue-900/20 rounded-2xl p-6 border border-sky-200/50 dark:border-sky-600/30 shadow-lg backdrop-blur-sm max-w-md">
-          <div className="text-gray-900 dark:text-gray-100">
+        <div className="bg-gradient-to-br from-sky-50 to-blue-50 rounded-2xl p-6 border border-sky-200/50 shadow-lg backdrop-blur-sm max-w-md">
+          <div className="text-gray-900">
             <div className="flex justify-between items-center mb-6">
               <div className="flex items-center space-x-3">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-sky-500 to-blue-500 flex items-center justify-center shadow-lg">
@@ -125,12 +125,12 @@ export const Weather = (props: WeatherAPIResponse) => (
                   </svg>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-gray-100">Weather Report</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{props.location.name}, {props.location.country}</p>
+                  <h3 className="font-semibold text-gray-900">Weather Report</h3>
+                  <p className="text-sm text-gray-600">{props.location.name}, {props.location.country}</p>
                 </div>
               </div>
               <div className="text-right">
-                <span className="text-sm text-gray-600 dark:text-gray-400 opacity-90">
+                <span className="text-sm text-gray-600 opacity-90">
                   {new Date(props.location.localtime).toLocaleDateString("en-US", {
                     weekday: "short",
                     month: "short",
@@ -140,59 +140,59 @@ export const Weather = (props: WeatherAPIResponse) => (
               </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-inner border border-sky-100 dark:border-sky-700/30">
+            <div className="bg-white rounded-xl p-4 shadow-inner border border-sky-100">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-4">
-                  <div className="text-4xl font-bold text-gray-900 dark:text-gray-100">
+                  <div className="text-4xl font-bold text-gray-900">
                     {props.current.temp_c}°C
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                    <span className="text-sm text-gray-600">
                       Feels like {props.current.feelslike_c}°C
                     </span>
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                    <span className="text-sm text-gray-600">
                       {props.current.condition.text}
                     </span>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+                  <div className="text-2xl font-semibold text-gray-900">
                     {props.current.temp_f}°F
                   </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                  <div className="text-sm text-gray-600">
                     Feels like {props.current.feelslike_f}°F
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-sky-100 dark:border-sky-700/30">
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-sky-100">
                 <div className="flex items-center space-x-2">
-                  <svg className="w-4 h-4 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Humidity</span>
-                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{props.current.humidity}%</span>
+                  <span className="text-sm text-gray-600">Humidity</span>
+                  <span className="text-sm font-medium text-gray-900">{props.current.humidity}%</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <svg className="w-4 h-4 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                   </svg>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Wind</span>
-                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{props.current.wind_kph} km/h</span>
+                  <span className="text-sm text-gray-600">Wind</span>
+                  <span className="text-sm font-medium text-gray-900">{props.current.wind_kph} km/h</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <svg className="w-4 h-4 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                   </svg>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Pressure</span>
-                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{props.current.pressure_mb} mb</span>
+                  <span className="text-sm text-gray-600">Pressure</span>
+                  <span className="text-sm font-medium text-gray-900">{props.current.pressure_mb} mb</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <svg className="w-4 h-4 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">UV Index</span>
-                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{props.current.uv}</span>
+                  <span className="text-sm text-gray-600">UV Index</span>
+                  <span className="text-sm font-medium text-gray-900">{props.current.uv}</span>
                 </div>
               </div>
             </div>

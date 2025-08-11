@@ -6,6 +6,7 @@ import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import UserProviderWrapper from "@/components/user-provider";
 import { getUser } from "@/lib/get-user";
+import HomeLayout from "@/components/layout/home-layout";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,6 +35,7 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
+        <HomeLayout>
         <ThemeProvider>
           <UserProviderWrapper initialUser={user}>
             <AI>
@@ -42,6 +44,7 @@ export default async function RootLayout({
             <Toaster position="top-right" richColors />
           </UserProviderWrapper>
         </ThemeProvider>
+        </HomeLayout>
       </body>
     </html>
   );
