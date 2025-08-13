@@ -38,8 +38,7 @@ const MainSection = () => {
             textShadow: '0 0 10px rgba(0, 0, 0, 0.3)'
           }}
         >
-          pxt.chat
-        </h2>
+                  </h2>
         <section className="md:flex items-center justify-center group-data-[collapsible=icon]:bg-background group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:rounded group-data-[collapsible=icon]:absolute group-data-[collapsible=icon]:left-2 hidden">
           <SidebarTrigger className="group-data-[collapsible=icon]:ml-3 w-fit px-2" />
           <Button
@@ -59,7 +58,7 @@ const MainSection = () => {
       >
         <Button
           variant="default"
-          className="w-full h-10 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 border-2 border-emerald-600 dark:border-emerald-500 text-white flex items-center justify-center group-data-[collapsible=icon]:w-0 cursor-pointer"
+          className="w-full h-10 bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 border-2 border-blue-600 dark:border-blue-600 text-white flex items-center justify-center group-data-[collapsible=icon]:w-0 cursor-pointer"
         >
           <span className="group-data-[collapsible=icon]:hidden transition-all duration-500 ease-in-out text-white font-semibold">
             New Chat

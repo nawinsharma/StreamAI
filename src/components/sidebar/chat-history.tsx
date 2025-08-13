@@ -93,7 +93,7 @@ const ChatHistory = ({ searchQuery }: ChatHistoryProps) => {
     };
 
     fetchChats();
-  }, [searchQuery, session?.data?.user]);
+  }, [searchQuery, session?.data?.user, path]);
 
   const formatChatTitle = (chat: { title: string; branchName?: string | null }) => {
       const cleanTitle = chat.title.replace(/^Branch from: /, '');
@@ -158,8 +158,8 @@ const ChatHistory = ({ searchQuery }: ChatHistoryProps) => {
     <>
       <SidebarGroup className="flex flex-col h-full px-4 py-2">
       <p className={cn(
-        "text-xs font-semibold mb-2 group-data-[collapsible=icon]:opacity-0 transition-all duration-500 ease-in-out",
-        "text-emerald-600 dark:text-emerald-400"
+        "text-md font-semibold mb-2 group-data-[collapsible=icon]:opacity-0 transition-all duration-500 ease-in-out",
+        "text-blue-600"
       )}>
         History
       </p>

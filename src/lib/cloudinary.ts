@@ -91,3 +91,44 @@ export async function deleteImageFromCloudinary(publicId: string): Promise<void>
     // Don't throw error for deletion failures as they're not critical
   }
 } 
+
+export async function uploadAnyToCloudinary(params: {
+  buffer: Buffer;
+  filename: string;
+  mimeType: string;
+  folder?: string;
+}): Promise<CloudinaryUploadResult & { resource_type: string } & { original_filename?: string }> {
+  try {
+    if (!isCloudinaryConfigured()) {
+      throw new Error("Cloudinary is not configured. Please add CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET to your environment variables.");
+    }
+
+    const { buffer, filename, mimeType, folder = 'user-uploads' } = params;
+
+    const isImage = mimeType.startsWith('image/');
+
+    const dataUri = `data:${mimeType};base64,${buffer.toString('base64')}`;
+
+    const result = await cloudinary.uploader.upload(dataUri, {
+      resource_type: isImage ? 'image' : 'raw',
+      folder,
+      public_id: filename.replace(/\.[^/.]+$/, ''),
+      use_filename: true,
+      unique_filename: true,
+      overwrite: false,
+    });
+
+    return {
+      public_id: result.public_id,
+      secure_url: result.secure_url,
+      format: (result as any).format,
+      width: (result as any).width,
+      height: (result as any).height,
+      resource_type: (result as any).resource_type,
+      original_filename: (result as any).original_filename,
+    };
+  } catch (error) {
+    console.error('Error uploading (any) to Cloudinary:', error);
+    throw new Error(`Failed to upload file to Cloudinary: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+} 

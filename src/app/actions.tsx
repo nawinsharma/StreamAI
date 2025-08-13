@@ -1,12 +1,9 @@
-import { agentExecutor } from "@/lib/graph";
-import { HumanMessage, AIMessage } from "@langchain/core/messages";
-import { CoreMessage, generateId } from "ai";
-import { createAI, getMutableAIState } from "ai/rsc";
+import { CoreMessage, generateId, streamText } from "ai";
 import { ReactNode } from "react";
-import { streamRunnableUI } from "./server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import prisma from "@/lib/prisma";
+import { google } from "@ai-sdk/google";
 
 interface InputProps {
   prompt: string;
@@ -14,6 +11,8 @@ interface InputProps {
     base64: string;
   };
   chatId?: string;
+  attachmentMeta?: { name: string; mimeType: string; url: string; type: 'image' | 'file'; width?: number | null; height?: number | null };
+  attachmentText?: string;
 }
 
 // Helper function to format tool responses
@@ -76,44 +75,81 @@ function formatToolResponse(toolResult: any): string {
 
 const convertChatHistoryToMessage = (chat_history: CoreMessage[]) =>
   chat_history.map(({ role, content }) => {
-    switch (role) {
-      case "user":
-        return new HumanMessage(content as string);
-      case "assistant":
-      case "system":
-        return new AIMessage(content as string);
-      default:
-        throw new Error(`Unknown role: { role}`);
-    }
+    return {
+      role: role === "user" ? "user" : "assistant",
+      content: content as string,
+    };
   });
 
 function processFile(input: InputProps, chat_history: CoreMessage[]) {
-  if (input.file) {
-    const imageTemplate = new HumanMessage({
+  // Handle image attachments for vision analysis
+  if (input.attachmentMeta && input.attachmentMeta.type === 'image') {
+    const imageMessage = {
+      role: "user" as const,
       content: [
         {
-          type: "image_url",
+          type: "image_url" as const,
           image_url: {
-            url: input.file.base64,
+            url: input.attachmentMeta.url,
           },
         },
+        {
+          type: "text" as const,
+          text: input.attachmentText
+            ? `${input.prompt}\n\nContext from attached file (truncated):\n${input.attachmentText}`
+            : input.prompt,
+        },
       ],
-    });
+    };
 
     return {
-      input: input.prompt,
-      chat_history: [
+      messages: [
         ...convertChatHistoryToMessage(chat_history),
-        imageTemplate,
+        imageMessage,
       ],
     };
-  } else {
+  }
+  
+  // Handle legacy file input (base64)
+  if (input.file) {
+    const imageMessage = {
+      role: "user" as const,
+      content: [
+        {
+          type: "image_url" as const,
+          image_url: {
+            url: `data:image/jpeg;base64,${input.file.base64}`,
+          },
+        },
+        {
+          type: "text" as const,
+          text: input.prompt,
+        },
+      ],
+    };
+
     return {
-      input: input.prompt,
-      chat_history: convertChatHistoryToMessage(chat_history),
+      messages: [
+        ...convertChatHistoryToMessage(chat_history),
+        imageMessage,
+      ],
     };
   }
+
+  // Regular text message
+  return {
+    messages: [
+      ...convertChatHistoryToMessage(chat_history),
+      {
+        role: "user" as const,
+        content: input.prompt,
+      },
+    ],
+  };
 }
+
+// Simple state management for messages
+let messageState: CoreMessage[] = [];
 
 async function sendMessage(input: InputProps) {
   "use server";
@@ -123,504 +159,99 @@ async function sendMessage(input: InputProps) {
   console.log("ChatId:", input.chatId);
   console.log("Prompt:", input.prompt);
 
-  const messages = getMutableAIState<typeof AI>("messages");
-
   try {
-    const processInputs = processFile(input, messages.get() as CoreMessage[]);
+    const processInputs = processFile(input, messageState);
     console.log("=== PROCESSING INPUTS ===");
     console.log("Processed inputs:", processInputs);
     
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const streamUI = streamRunnableUI(agentExecutor() as any, processInputs);
-    console.log("=== STREAM UI CREATED ===");
+    // Use Google AI with streaming
+    const result = await streamText({
+      model: google('gemini-1.5-flash') as any,
+      messages: processInputs.messages as any,
+      temperature: 0.7,
+      providerOptions: {
+        google: {
+          maxOutputTokens: 4000,
+          safetySettings: [
+            {
+              category: 'HARM_CATEGORY_UNSPECIFIED',
+              threshold: 'BLOCK_LOW_AND_ABOVE',
+            },
+          ],
+        },
+      },
+    });
 
-    // Execute the async function immediately and await it
-    const processResult = (async () => {
+    // Get final text for database storage
+    const finalText = await result.text;
+    
+    // Save messages to database if user is authenticated and chatId is provided
+    if (input.chatId) {
       try {
-        console.log("=== WAITING FOR LAST EVENT ===");
-        const lastEvent = await streamUI.lastEvent;
-        console.log("=== DEBUG: Last event received ===");
-        console.log(JSON.stringify(lastEvent, null, 2));
-        console.log("=== END DEBUG ===");
-
-        // Add a simple test to see if this code is running
-        console.log("=== SERVER-SIDE CODE IS RUNNING ===");
-        console.log("Last event type:", typeof lastEvent);
-        console.log("Last event keys:", lastEvent ? Object.keys(lastEvent) : "null");
-
-        if (typeof lastEvent === "object" && lastEvent !== null) {
-          const event = lastEvent as { 
-            invokeModel?: { error?: string; result?: string }; 
-            invokeTools?: { error?: string; toolResult?: unknown };
-            result?: string;
-            content?: string;
-            text?: string;
-            message?: string;
-            [key: string]: any; // Allow any additional properties
-          };
+        const session = await auth.api.getSession({
+          headers: await headers()
+        });
+        
+        if (session?.user?.id) {
+          console.log("=== SAVING MODEL RESPONSE TO DB ===");
           
-          console.log("=== DEBUG: Event structure ===");
-          console.log("Event keys:", Object.keys(event));
-          console.log("invokeModel:", event.invokeModel);
-          console.log("invokeTools:", event.invokeTools);
-          console.log("result:", event.result);
-          console.log("content:", event.content);
-          console.log("text:", event.text);
-          console.log("message:", event.message);
-          console.log("=== END DEBUG ===");
-          
-          // Check if there's an error
-          if (event.invokeModel && event.invokeModel.error) {
-            console.log("Model error:", event.invokeModel.error);
-            messages.done([
-              ...(messages.get() as CoreMessage[]),
-              { role: "user", content: input.prompt },
-              { role: "assistant", content: `I encountered an error: ${event.invokeModel.error}` },
-            ]);
-            return;
-          }
-          
-          if (event.invokeTools && event.invokeTools.error) {
-            console.log("Tool error:", event.invokeTools.error);
-            messages.done([
-              ...(messages.get() as CoreMessage[]),
-              { role: "user", content: input.prompt },
-              { role: "assistant", content: `I encountered an error while using a tool: ${event.invokeTools.error}` },
-            ]);
-            return;
-          }
-
-          // Check if it's a model result
-          if (event.invokeModel && event.invokeModel.result) {
-            console.log("Model result:", event.invokeModel.result);
-            const aiResponse = event.invokeModel.result;
-            messages.done([
-              ...(messages.get() as CoreMessage[]),
-              { role: "user", content: input.prompt },
-              { role: "assistant", content: aiResponse },
-            ]);
-
-            // Save messages to database if user is authenticated and chatId is provided
-            if (input.chatId) {
-              try {
-                const session = await auth.api.getSession({
-                  headers: await headers()
-                });
-                
-                if (session?.user?.id) {
-                  console.log("=== SAVING MODEL RESPONSE TO DB ===");
-                  // Save user message
-                  await prisma.message.create({
-                    data: {
-                      content: input.prompt,
-                      role: "user",
-                      chatId: input.chatId,
-                    },
-                  });
-
-                  // Save AI response
-                  await prisma.message.create({
-                    data: {
-                      content: aiResponse,
-                      role: "assistant",
-                      chatId: input.chatId,
-                    },
-                  });
-
-                  // Update chat's updatedAt timestamp and title if it's the first message
-                  await prisma.chat.update({
-                    where: { id: input.chatId },
-                    data: { 
-                      updatedAt: new Date(),
-                      title: input.prompt.substring(0, 50) + (input.prompt.length > 50 ? "..." : "")
-                    },
-                  });
-                  console.log("=== MODEL RESPONSE SAVED SUCCESSFULLY ===");
-                }
-              } catch (error) {
-                console.error("Error saving messages to database:", error);
-              }
-            }
-          } 
-          // Check if it's a tool result
-          else if (event.invokeTools && event.invokeTools.toolResult) {
-            console.log("Tool result:", event.invokeTools.toolResult);
-            const toolResponse = formatToolResponse(event.invokeTools.toolResult);
-            console.log("Formatted tool response:", toolResponse);
-            messages.done([
-              ...(messages.get() as CoreMessage[]),
-              { role: "user", content: input.prompt },
-              { role: "assistant", content: toolResponse },
-            ]);
-
-            // Save messages to database if user is authenticated and chatId is provided
-            if (input.chatId) {
-              try {
-                const session = await auth.api.getSession({
-                  headers: await headers()
-                });
-                
-                if (session?.user?.id) {
-                  console.log("=== SAVING TOOL RESPONSE TO DB ===");
-                  // Save user message
-                  await prisma.message.create({
-                    data: {
-                      content: input.prompt,
-                      role: "user",
-                      chatId: input.chatId,
-                    },
-                  });
-
-                  // Save AI response
-                  await prisma.message.create({
-                    data: {
-                      content: toolResponse,
-                      role: "assistant",
-                      chatId: input.chatId,
-                    },
-                  });
-
-                  // Update chat's updatedAt timestamp and title if it's the first message
-                  await prisma.chat.update({
-                    where: { id: input.chatId },
-                    data: { 
-                      updatedAt: new Date(),
-                      title: input.prompt.substring(0, 50) + (input.prompt.length > 50 ? "..." : "")
-                    },
-                  });
-                  console.log("=== TOOL RESPONSE SAVED SUCCESSFULLY ===");
-                }
-              } catch (error) {
-                console.error("Error saving messages to database:", error);
-              }
-            }
-          } 
-          // Check for top-level toolResult (for chart, weather, etc.)
-          else if (event.toolResult) {
-            console.log("Top-level toolResult:", event.toolResult);
-            const toolResponse = formatToolResponse(event.toolResult);
-            console.log("Formatted tool response:", toolResponse);
-            messages.done([
-              ...(messages.get() as CoreMessage[]),
-              { role: "user", content: input.prompt },
-              { role: "assistant", content: toolResponse },
-            ]);
-
-            // Save messages to database if user is authenticated and chatId is provided
-            if (input.chatId) {
-              try {
-                const session = await auth.api.getSession({
-                  headers: await headers()
-                });
-                
-                if (session?.user?.id) {
-                  console.log("=== SAVING TOP-LEVEL TOOLRESULT TO DB ===");
-                  // Save user message
-                  await prisma.message.create({
-                    data: {
-                      content: input.prompt,
-                      role: "user",
-                      chatId: input.chatId,
-                    },
-                  });
-
-                  // Save AI response
-                  await prisma.message.create({
-                    data: {
-                      content: toolResponse,
-                      role: "assistant",
-                      chatId: input.chatId,
-                    },
-                  });
-
-                  // Update chat's updatedAt timestamp and title if it's the first message
-                  await prisma.chat.update({
-                    where: { id: input.chatId },
-                    data: { 
-                      updatedAt: new Date(),
-                      title: input.prompt.substring(0, 50) + (input.prompt.length > 50 ? "..." : "")
-                    },
-                  });
-                  console.log("=== TOP-LEVEL TOOLRESULT SAVED SUCCESSFULLY ===");
-                }
-              } catch (error) {
-                console.error("Error saving messages to database:", error);
-              }
-            }
-          }
-          // Check for direct result in the event
-          else if (lastEvent && typeof lastEvent === 'object' && 'result' in lastEvent) {
-            console.log("Direct result:", (lastEvent as any).result);
-            const aiResponse = (lastEvent as any).result;
-            messages.done([
-              ...(messages.get() as CoreMessage[]),
-              { role: "user", content: input.prompt },
-              { role: "assistant", content: aiResponse },
-            ]);
-
-            // Save messages to database if user is authenticated and chatId is provided
-            if (input.chatId) {
-              try {
-                const session = await auth.api.getSession({
-                  headers: await headers()
-                });
-                
-                if (session?.user?.id) {
-                  console.log("=== SAVING DIRECT RESULT TO DB ===");
-                  // Save user message
-                  await prisma.message.create({
-                    data: {
-                      content: input.prompt,
-                      role: "user",
-                      chatId: input.chatId,
-                    },
-                  });
-
-                  // Save AI response
-                  await prisma.message.create({
-                    data: {
-                      content: aiResponse,
-                      role: "assistant",
-                      chatId: input.chatId,
-                    },
-                  });
-
-                  // Update chat's updatedAt timestamp and title if it's the first message
-                  await prisma.chat.update({
-                    where: { id: input.chatId },
-                    data: { 
-                      updatedAt: new Date(),
-                      title: input.prompt.substring(0, 50) + (input.prompt.length > 50 ? "..." : "")
-                    },
-                  });
-                  console.log("=== DIRECT RESULT SAVED SUCCESSFULLY ===");
-                }
-              } catch (error) {
-                console.error("Error saving messages to database:", error);
-              }
-            }
-          }
-          // Check for content field (common in some AI responses)
-          else if (event.content) {
-            console.log("Content field:", event.content);
-            const aiResponse = event.content;
-            messages.done([
-              ...(messages.get() as CoreMessage[]),
-              { role: "user", content: input.prompt },
-              { role: "assistant", content: aiResponse },
-            ]);
-
-            // Save messages to database if user is authenticated and chatId is provided
-            if (input.chatId) {
-              try {
-                const session = await auth.api.getSession({
-                  headers: await headers()
-                });
-                
-                if (session?.user?.id) {
-                  console.log("=== SAVING CONTENT FIELD TO DB ===");
-                  // Save user message
-                  await prisma.message.create({
-                    data: {
-                      content: input.prompt,
-                      role: "user",
-                      chatId: input.chatId,
-                    },
-                  });
-
-                  // Save AI response
-                  await prisma.message.create({
-                    data: {
-                      content: aiResponse,
-                      role: "assistant",
-                      chatId: input.chatId,
-                    },
-                  });
-
-                  // Update chat's updatedAt timestamp and title if it's the first message
-                  await prisma.chat.update({
-                    where: { id: input.chatId },
-                    data: { 
-                      updatedAt: new Date(),
-                      title: input.prompt.substring(0, 50) + (input.prompt.length > 50 ? "..." : "")
-                    },
-                  });
-                  console.log("=== CONTENT FIELD SAVED SUCCESSFULLY ===");
-                }
-              } catch (error) {
-                console.error("Error saving messages to database:", error);
-              }
-            }
-          }
-          // Check for text field (another common format)
-          else if (event.text) {
-            console.log("Text field:", event.text);
-            const aiResponse = event.text;
-            messages.done([
-              ...(messages.get() as CoreMessage[]),
-              { role: "user", content: input.prompt },
-              { role: "assistant", content: aiResponse },
-            ]);
-
-            // Save messages to database if user is authenticated and chatId is provided
-            if (input.chatId) {
-              try {
-                const session = await auth.api.getSession({
-                  headers: await headers()
-                });
-                
-                if (session?.user?.id) {
-                  console.log("=== SAVING TEXT FIELD TO DB ===");
-                  // Save user message
-                  await prisma.message.create({
-                    data: {
-                      content: input.prompt,
-                      role: "user",
-                      chatId: input.chatId,
-                    },
-                  });
-
-                  // Save AI response
-                  await prisma.message.create({
-                    data: {
-                      content: aiResponse,
-                      role: "assistant",
-                      chatId: input.chatId,
-                    },
-                  });
-
-                  // Update chat's updatedAt timestamp and title if it's the first message
-                  await prisma.chat.update({
-                    where: { id: input.chatId },
-                    data: { 
-                      updatedAt: new Date(),
-                      title: input.prompt.substring(0, 50) + (input.prompt.length > 50 ? "..." : "")
-                    },
-                  });
-                  console.log("=== TEXT FIELD SAVED SUCCESSFULLY ===");
-                }
-              } catch (error) {
-                console.error("Error saving messages to database:", error);
-              }
-            }
-          }
-          // Check for message field
-          else if (event.message) {
-            console.log("Message field:", event.message);
-            const aiResponse = event.message;
-            messages.done([
-              ...(messages.get() as CoreMessage[]),
-              { role: "user", content: input.prompt },
-              { role: "assistant", content: aiResponse },
-            ]);
-
-            // Save messages to database if user is authenticated and chatId is provided
-            if (input.chatId) {
-              try {
-                const session = await auth.api.getSession({
-                  headers: await headers()
-                });
-                
-                if (session?.user?.id) {
-                  console.log("=== SAVING MESSAGE FIELD TO DB ===");
-                  // Save user message
-                  await prisma.message.create({
-                    data: {
-                      content: input.prompt,
-                      role: "user",
-                      chatId: input.chatId,
-                    },
-                  });
-
-                  // Save AI response
-                  await prisma.message.create({
-                    data: {
-                      content: aiResponse,
-                      role: "assistant",
-                      chatId: input.chatId,
-                    },
-                  });
-
-                  // Update chat's updatedAt timestamp and title if it's the first message
-                  await prisma.chat.update({
-                    where: { id: input.chatId },
-                    data: { 
-                      updatedAt: new Date(),
-                      title: input.prompt.substring(0, 50) + (input.prompt.length > 50 ? "..." : "")
-                    },
-                  });
-                  console.log("=== MESSAGE FIELD SAVED SUCCESSFULLY ===");
-                }
-              } catch (error) {
-                console.error("Error saving messages to database:", error);
-              }
-            }
-          }
-          // Handle other cases or log for debugging
-          else {
-            console.log("Unexpected event structure:", lastEvent);
-            // Try to extract any string content from the event
-            let aiResponse = "I processed your request.";
+          // Save user message
+          const userContent = input.attachmentMeta 
+            ? `${input.prompt}\n${JSON.stringify(input.attachmentMeta)}`
+            : input.prompt;
             
-            // Try to find any string content in the event object
-            if (typeof lastEvent === 'object') {
-              const eventKeys = Object.keys(lastEvent);
-              for (const key of eventKeys) {
-                const value = (lastEvent as any)[key];
-                if (typeof value === 'string' && value.length > 10) {
-                  aiResponse = value;
-                  console.log(`Found response in ${key}:`, value);
-                  break;
-                }
-              }
-            }
-            
-            messages.done([
-              ...(messages.get() as CoreMessage[]),
-              { role: "user", content: input.prompt },
-              { role: "assistant", content: aiResponse },
-            ]);
-          }
-        } else {
-          console.log("No valid event received:", lastEvent);
-          // Add user message even if no event
-          messages.done([
-            ...(messages.get() as CoreMessage[]),
-            { role: "user", content: input.prompt },
-            { role: "assistant", content: "I processed your request." },
-          ]);
+          await prisma.message.create({
+            data: {
+              content: userContent,
+              role: "user",
+              chatId: input.chatId,
+            },
+          });
+
+          // Save AI response
+          await prisma.message.create({
+            data: {
+              content: finalText,
+              role: "assistant",
+              chatId: input.chatId,
+            },
+          });
+
+          // Update chat's updatedAt timestamp and title if it's the first message
+          await prisma.chat.update({
+            where: { id: input.chatId },
+            data: { 
+              updatedAt: new Date(),
+              title: input.prompt.substring(0, 50) + (input.prompt.length > 50 ? "..." : "")
+            },
+          });
+          console.log("=== MODEL RESPONSE SAVED SUCCESSFULLY ===");
         }
       } catch (error) {
-        console.error("Error processing stream event:", error);
-        messages.done([
-          ...(messages.get() as CoreMessage[]),
-          { role: "user", content: input.prompt },
-          { role: "assistant", content: `I encountered an error while processing your request: ${error instanceof Error ? error.message : 'Unknown error'}` },
-        ]);
+        console.error("Error saving messages to database:", error);
       }
-    })();
-
-    // Wait for the async function to complete
-    await processResult;
-
-    if (input.file) {
-      return {
-        ui: streamUI.ui,
-        url: input.file.base64,
-      };
     }
 
-    return { ui: streamUI.ui };
+    // Update message state
+    messageState = [
+      ...messageState,
+      { role: "user", content: input.prompt },
+      { role: "assistant", content: finalText },
+    ];
+
+    return { ui: finalText };
   } catch (error) {
     console.error("Error in sendMessage:", error);
-    messages.done([
-      ...(messages.get() as CoreMessage[]),
+    
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    messageState = [
+      ...messageState,
       { role: "user", content: input.prompt },
-      { role: "assistant", content: `I encountered an error: ${error instanceof Error ? error.message : 'Unknown error'}` },
-    ]);
+      { role: "assistant", content: `I encountered an error: ${errorMessage}` },
+    ];
     
     // Return a simple UI for error cases
-    return { ui: null };
+    return { ui: `I encountered an error: ${errorMessage}` };
   }
 }
 
@@ -631,23 +262,5 @@ export type AIState = {
   messages: Array<CoreMessage>;
 };
 
-export const AI = createAI<AIState, UIState>({
-  initialAIState: {
-    chatId: generateId(),
-    messages: [],
-  },
-  initialUIState: [],
-  actions: {
-    sendMessage,
-  },
-  onSetAIState: async ({ state, done }) => {
-    "use server";
-
-    if (done) {
-      // save to database if needed
-      console.log("----------- START ----------");
-      console.log(JSON.stringify(state, null, 2));
-      console.log("----------- END ----------");
-    }
-  },
-});
+// Export the sendMessage function for use in the app
+export { sendMessage };

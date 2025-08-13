@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { AI } from "./actions";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import UserProviderWrapper from "@/components/user-provider";
@@ -38,9 +37,7 @@ export default async function RootLayout({
         <HomeLayout>
         <ThemeProvider>
           <UserProviderWrapper initialUser={user}>
-            <AI>
-              {children}
-            </AI>
+            {children}
             <Toaster position="top-right" richColors />
           </UserProviderWrapper>
         </ThemeProvider>

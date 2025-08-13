@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useActions } from "ai/rsc";
-import { HumanMessageText, AISkeletonLoading, AIMessageText } from "@/components/message";
+import { AISkeletonLoading } from "@/components/message";
 import { useScrollToBottom } from "@/components/use-scroll-to-bottom";
 import { toast } from "sonner";
 import { ErrorHandler } from "@/lib/error-handler";
@@ -11,165 +10,94 @@ import { Textarea } from "@/components/ui/textarea";
 import { Header } from "@/components/ui/Header";
 import { useUser } from "@/context/UserContext";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { use } from "react";
 import axios from "axios";
-import { ChartJS } from "@/components/ui/chart";
-import { Weather } from "@/components/ui/weather";
-import { Video } from "@/components/ui/video";
-import { GeminiImage } from "@/components/ui/image";
+import { FilePreview } from "@/components/ui/file-preview";
+import { AttachmentButton } from "@/components/ui/attachment-button";
+import { ChatImage } from "@/components/ui/chat-image";
+import { Actions, Action } from "@/components/ui/actions";
+import { Copy, ThumbsUp, ThumbsDown, RotateCcw } from "lucide-react";
+import { WeatherCard } from "@/components/ui/weather";
+import { Markdown } from "@/components/ui/markdown";
 
 interface Message {
   id: string;
+  role: "user" | "assistant";
   content: string;
-  role: string;
-  createdAt: string;
+  createdAt: Date;
 }
 
 interface Chat {
   id: string;
   title: string;
   messages: Message[];
-  createdAt: string;
-  updatedAt: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-// Helper function to detect and parse chart data from message content
-function parseChartData(content: string) {
+interface AttachmentMeta {
+  name: string;
+  mimeType: string;
+  url: string;
+  type: 'image' | 'file';
+  width?: number | null;
+  height?: number | null;
+  size?: number;
+  extractedTextPreview?: string | null;
+}
+
+function tryParseAttachmentFromContent(content: string): AttachmentMeta | null {
   try {
-    // Check if content contains chart data structure
-    if (content.includes('"type":') && content.includes('"data":') && content.includes('"title":')) {
-      // Try to extract JSON from the content
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const chartData = JSON.parse(jsonMatch[0]);
-        if (chartData.type && chartData.data && chartData.title) {
-          return {
-            title: chartData.title,
-            type: chartData.type,
-            data: chartData.data
-          };
-        }
-      }
+    // First try to find the old format with __attachment
+    const attachmentMatch = content.match(/\{"__attachment"[\s\S]*\}$/);
+    if (attachmentMatch) {
+      const attachmentData = JSON.parse(attachmentMatch[0]);
+      return attachmentData;
     }
-    return null;
-  } catch (error) {
-    console.error("Error parsing chart data:", error);
-    return null;
-  }
-}
-
-// Helper function to detect and parse weather data from message content
-function parseWeatherData(content: string) {
-  try {
-    // Check if content contains weather data structure
-    if (content.includes('"location":') && content.includes('"current":')) {
-      // Try to extract JSON from the content
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const weatherData = JSON.parse(jsonMatch[0]);
-        if (weatherData.location && weatherData.current) {
-          return weatherData;
-        }
-      }
-    }
-    return null;
-  } catch (error) {
-    console.error("Error parsing weather data:", error);
-    return null;
-  }
-}
-
-// Helper function to detect and parse video data from message content
-function parseVideoData(content: string) {
-  try {
-    // Check if content contains video data structure
-    if (content.includes('"videoId":') || content.includes('"items":')) {
-      // Try to extract JSON from the content
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const videoData = JSON.parse(jsonMatch[0]);
-        if (videoData.items && videoData.items.length > 0 && videoData.items[0].id?.videoId) {
-          return videoData.items[0].id.videoId;
-        }
-      }
-    }
-    return null;
-  } catch (error) {
-    console.error("Error parsing video data:", error);
-    return null;
-  }
-}
-
-// Helper function to detect and parse image data from message content
-function parseImageData(content: string) {
-  try {
-    // Check if content contains image data structure
-    if (content.includes('"type": "image"')) {
-      // Try to extract JSON from the content
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const imageData = JSON.parse(jsonMatch[0]);
-        if (imageData.type === "image") {
-          // Prefer Cloudinary URL if available, otherwise fall back to original data
-          if (imageData.cloudinary && imageData.cloudinary.secure_url) {
-            return imageData.cloudinary.secure_url;
-          } else if (imageData.originalData) {
-            return imageData.originalData;
+    
+    // Try to find the new format where attachment metadata is appended as JSON
+    const lines = content.split('\n');
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const line = lines[i].trim();
+      if (line.startsWith('{') && line.endsWith('}')) {
+        try {
+          const parsed = JSON.parse(line);
+          // Check if this looks like attachment metadata
+          if (parsed.name && parsed.url && (parsed.type === 'image' || parsed.type === 'file')) {
+            return parsed as AttachmentMeta;
           }
-        }
+        } catch {}
       }
     }
-    return null;
-  } catch (error) {
-    console.error("Error parsing image data:", error);
-    return null;
-  }
+  } catch {}
+  return null;
 }
 
-// Helper function to render message content
-function renderMessageContent(content: string) {
-  // Check if this is chart data
-  const chartData = parseChartData(content);
-  if (chartData) {
-    return <ChartJS {...chartData} />;
-  }
+/**
+ * Cleans message content by removing attachment metadata
+ */
+function cleanMessageContent(content: string): string {
+  // Remove old format attachment metadata
+  const cleaned = content.replace(/\n?\{\"__attachment\"[\s\S]*\}$/,'');
   
-  // Check if this is weather data
-  const weatherData = parseWeatherData(content);
-  if (weatherData) {
-    return <Weather {...weatherData} />;
-  }
-  
-  // Check if this is video data
-  const videoId = parseVideoData(content);
-  if (videoId) {
-    return <Video videoId={videoId} />;
-  }
-  
-  // Check if this is image data
-  const imageUrl = parseImageData(content);
-  if (imageUrl) {
-    return <GeminiImage url={imageUrl} />;
-  }
-  
-  // Regular text content
-  return <AIMessageText content={content} />;
-}
-
-const convertFileToBase64 = (file: File): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      const base64String = reader.result as string;
-      resolve(base64String);
-    };
-    reader.onerror = (error) => {
-      reject(error);
-    };
-    reader.readAsDataURL(file);
+  // Remove new format attachment metadata (JSON at the end)
+  const lines = cleaned.split('\n');
+  const cleanLines = lines.filter(line => {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        // If this looks like attachment metadata, filter it out
+        if (parsed.name && parsed.url && (parsed.type === 'image' || parsed.type === 'file')) {
+          return false;
+        }
+      } catch {}
+    }
+    return true;
   });
+  
+  return cleanLines.join('\n').trim();
+}
 
 export default function ChatPage({ params }: { params: Promise<{ chatId: string }> }) {
   const resolvedParams = use(params);
@@ -178,16 +106,14 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
   const [elements, setElements] = useState<React.ReactNode[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [chat, setChat] = useState<Chat | null>(null);
   const [loading, setLoading] = useState(true);
   const user = useUser();
   const router = useRouter();
-  const { sendMessage } = useActions();
-  const [messagesContainerRef, messagesEndRef] = useScrollToBottom<HTMLDivElement>();
-  const formRef = useRef<HTMLFormElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  // Removed: const { sendMessage } = useActions();
+  const [messagesContainerRef, messagesEndRef, scrollToBottom] = useScrollToBottom<HTMLDivElement>();
+  const [pendingAttachment, setPendingAttachment] = useState<AttachmentMeta | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -226,15 +152,87 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
         // Convert existing messages to UI elements
         const messageElements = chatData.messages.map((message: Message) => {
           if (message.role === "user") {
+            const att = tryParseAttachmentFromContent(message.content);
             return (
-              <div key={message.id} className="message-enter animate-in slide-in-from-bottom-4 duration-500">
-                <HumanMessageText content={message.content} />
+              <div key={message.id} className="flex justify-end mb-1 animate-in slide-in-from-right-2 duration-300">
+                <div className="flex flex-col items-end space-y-2 max-w-[70%]">
+                  {att && (
+                    <div className="mb-4">
+                      {att.type === 'image' ? (
+                        <ChatImage 
+                          src={att.url} 
+                          alt={att.name}
+                          className="mb-4"
+                          size="md"
+                        />
+                      ) : (
+                        <FilePreview 
+                          file={{
+                            name: att.name,
+                            mimeType: att.mimeType,
+                            url: att.url,
+                            type: att.type,
+                            width: att.width,
+                            height: att.height,
+                            size: att.size,
+                          }}
+                        />
+                      )}
+                    </div>
+                  )}
+                  <div className="px-6 py-4 rounded-3xl rounded-br-lg bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-lg border border-blue-600/20 backdrop-blur-sm">
+                    <div className="text-sm leading-relaxed font-medium">
+                      {cleanMessageContent(message.content)}
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center space-x-1">
+                    <div className="w-1 h-1 bg-gray-400 dark:bg-gray-500 rounded-full"></div>
+                    <span>{new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  </div>
+                </div>
               </div>
             );
           } else {
             return (
-              <div key={message.id} className="message-enter animate-in slide-in-from-bottom-4 duration-500">
-                {renderMessageContent(message.content)}
+              <div key={message.id} className="flex justify-start mb-1 animate-in slide-in-from-left-2 duration-300 group">
+                <div className="flex flex-col items-start space-y-2 max-w-[85%]">
+                  <div className="px-6 py-4 rounded-3xl rounded-bl-lg text-gray-900 dark:text-gray-100">
+                    {renderMessageContent(message.content)}
+                  </div>
+                  
+                  {/* Actions - Show on hover */}
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <Actions className="mt-2">
+                      <Action
+                        onClick={() => {
+                          navigator.clipboard.writeText(message.content);
+                          toast.success("Copied to clipboard");
+                        }}
+                        label="Copy"
+                      >
+                        <Copy className="size-3" />
+                      </Action>
+                      <Action
+                        onClick={() => toast.success("Message liked")}
+                        label="Like"
+                      >
+                        <ThumbsUp className="size-3" />
+                      </Action>
+                      <Action
+                        onClick={() => toast.success("Message disliked")}
+                        label="Dislike"
+                      >
+                        <ThumbsDown className="size-3" />
+                      </Action>
+                      <Action
+                        onClick={() => toast.success("Regenerating response...")}
+                        label="Redo"
+                      >
+                        <RotateCcw className="size-3" />
+                      </Action>
+                    </Actions>
+                  </div>
+                </div>
               </div>
             );
           }
@@ -254,8 +252,32 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
     }
   };
 
-  const handleFileSelect = (file: File) => {
-    setSelectedFile(file);
+  const handleFileSelect = async (file: File) => {
+    try {
+      setUploading(true);
+      const formData = new FormData();
+      formData.append('chatId', chatId);
+      formData.append('file', file);
+      const res = await fetch(`/api/upload`, { method: 'POST', body: formData });
+      if (!res.ok) throw new Error('Upload failed');
+      const data = await res.json();
+      setPendingAttachment({
+        name: data.attachment.name,
+        mimeType: data.attachment.mimeType,
+        url: data.attachment.url,
+        type: data.attachment.type,
+        width: data.attachment.width,
+        height: data.attachment.height,
+        size: data.attachment.size,
+        extractedTextPreview: data.attachment.extractedTextPreview,
+      });
+      toast.success('File uploaded');
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to upload file');
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleNewChat = () => {
@@ -272,64 +294,164 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
     console.log("Starting message submission...");
     setIsLoading(true);
     const newElements = [...elements];
-    let base64File: string | undefined = undefined;
-
-    if (selectedFile) {
-      try {
-        base64File = await convertFileToBase64(selectedFile);
-      } catch (error) {
-        ErrorHandler.handleGeneralError(error instanceof Error ? error : "Failed to process file", "File processing");
-        setIsLoading(false);
-        return;
-      }
-    }
 
     // Add user message to the chat
     newElements.push(
-      <div key={`user-${Date.now()}`} className="message-enter animate-in slide-in-from-bottom-4 duration-500">
-        {selectedFile && (
-          <div className="mb-4 rounded-xl overflow-hidden border border-border/50 shadow-lg">
-            <Image
-              src={URL.createObjectURL(selectedFile)}
-              alt="Uploaded image"
-              width={800}
-              height={600}
-              className="w-full max-w-2xl h-auto object-cover"
-            />
+      <div key={`user-${Date.now()}`} className="flex justify-end mb-1 animate-in slide-in-from-right-2 duration-300">
+        <div className="flex flex-col items-end space-y-2 max-w-[70%]">
+          {pendingAttachment && (
+            <div className="mb-4">
+              {pendingAttachment.type === 'image' ? (
+                <ChatImage 
+                  src={pendingAttachment.url} 
+                  alt={pendingAttachment.name}
+                  className="mb-4"
+                  size="sm"
+                />
+              ) : (
+                <FilePreview 
+                  file={{
+                    name: pendingAttachment.name,
+                    mimeType: pendingAttachment.mimeType,
+                    url: pendingAttachment.url,
+                    type: pendingAttachment.type,
+                    width: pendingAttachment.width,
+                    height: pendingAttachment.height,
+                    size: pendingAttachment.size,
+                  }}
+                  onRemove={() => setPendingAttachment(null)}
+                />
+              )}
+            </div>
+          )}
+          <div className="px-6 py-4 rounded-3xl rounded-br-lg bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-lg border border-blue-600/20 backdrop-blur-sm">
+            <div className="text-sm leading-relaxed font-medium">{prompt}</div>
           </div>
-        )}
-        <HumanMessageText content={prompt} />
+          <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center space-x-1">
+            <div className="w-1 h-1 bg-gray-400 dark:bg-gray-500 rounded-full"></div>
+            <span>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+          </div>
+        </div>
       </div>
     );
 
     // Update elements immediately to show user message
     setElements(newElements);
+    
+    // Trigger scroll to bottom after adding user message
+    setTimeout(scrollToBottom, 50);
 
     try {
-      console.log("Sending message with chatId:", chatId);
-      const element = await sendMessage({
-        prompt,
-        file: base64File
-          ? {
-              base64: base64File,
-            }
-          : undefined,
-        chatId: chatId,
+      // Start streaming API call
+      const requestBody: any = {
+        chatId, // ensure API can persist messages
+        messages: [
+          { role: 'user', content: prompt },
+        ],
+      };
+
+      // Include attachment metadata if present
+      if (pendingAttachment) {
+        requestBody.attachmentMeta = {
+          name: pendingAttachment.name,
+          mimeType: pendingAttachment.mimeType,
+          url: pendingAttachment.url,
+          type: pendingAttachment.type,
+          width: pendingAttachment.width,
+          height: pendingAttachment.height,
+          extractedTextPreview: pendingAttachment.extractedTextPreview,
+        };
+      }
+
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
       });
-      
-      console.log("Message sent successfully, element:", element);
-      console.log("ChatId used:", chatId);
-      
-      // Add AI response
-      newElements.push(
-        <div key={`ai-${Date.now()}`} className="message-enter animate-in slide-in-from-bottom-4 duration-500">
-          {element.ui}
-        </div>,
+
+      if (!res.body) {
+        throw new Error('No response body');
+      }
+
+      // Create a placeholder AI element that we will update as chunks arrive
+      let aiText = '';
+      let weatherPayload: any | null = null;
+      const renderAI = (text: string, weather: any | null) => (
+        <div key={`ai-${Date.now()}`} className="flex justify-start mb-1 animate-in slide-in-from-left-2 duration-300 group">
+          <div className="flex flex-col items-start space-y-2 max-w-[85%]">
+            {weather ? (
+              <WeatherCard data={weather} />
+            ) : null}
+            <div className="px-6 py-4 rounded-3xl rounded-bl-lg text-gray-900 dark:text-gray-100">
+              <Markdown>{text}</Markdown>
+            </div>
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <Actions className="mt-2">
+                <Action onClick={() => { navigator.clipboard.writeText(text); toast.success('Copied to clipboard'); }} label="Copy">
+                  <Copy className="size-3" />
+                </Action>
+                <Action onClick={() => toast.success('Message liked')} label="Like">
+                  <ThumbsUp className="size-3" />
+                </Action>
+                <Action onClick={() => toast.success('Message disliked')} label="Dislike">
+                  <ThumbsDown className="size-3" />
+                </Action>
+                <Action onClick={() => toast.success('Regenerating response...')} label="Redo">
+                  <RotateCcw className="size-3" />
+                </Action>
+              </Actions>
+            </div>
+          </div>
+        </div>
       );
 
-      setElements(newElements);
+      newElements.push(renderAI(aiText, weatherPayload));
+      setElements([...newElements]);
+      setTimeout(scrollToBottom, 50);
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        // Extract weather marker lines if present
+        let idx;
+        while ((idx = buffer.indexOf('\n')) !== -1) {
+          const line = buffer.slice(0, idx);
+          buffer = buffer.slice(idx + 1);
+          if (line.startsWith('UI_WEATHER:')) {
+            try {
+              const payload = JSON.parse(line.replace('UI_WEATHER:', ''));
+              weatherPayload = payload;
+            } catch {}
+            continue;
+          }
+          aiText += line + '\n';
+          setElements((prev) => {
+            const updated = [...prev];
+            updated[updated.length - 1] = renderAI(aiText, weatherPayload);
+            return updated;
+          });
+          setTimeout(scrollToBottom, 30);
+        }
+      }
+      // Flush any remainder
+      if (buffer.length) {
+        aiText += buffer;
+        setElements((prev) => {
+          const updated = [...prev];
+          updated[updated.length - 1] = renderAI(aiText, weatherPayload);
+          return updated;
+        });
+        setTimeout(scrollToBottom, 50);
+      }
+
+      // Finalize
       setInput("");
-      setSelectedFile(null);
+      setPendingAttachment(null);
+      setTimeout(scrollToBottom, 50);
     } catch (error) {
       console.error("Error sending message:", error);
       
@@ -343,9 +465,56 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
     }
   }
 
+  function renderMessageContent(content: string) {
+    // Handle UI markers persisted in DB (e.g., UI_WEATHER:{...})
+    if (content.startsWith('UI_WEATHER:')) {
+      const nl = content.indexOf('\n');
+      const jsonLine = nl === -1 ? content : content.slice(0, nl);
+      const rest = nl === -1 ? '' : content.slice(nl + 1);
+      const jsonStr = jsonLine.replace('UI_WEATHER:', '').trim();
+      try {
+        const payload = JSON.parse(jsonStr);
+        return (
+          <div className="space-y-3">
+            <WeatherCard data={payload} />
+            {rest ? (
+              <Markdown>{rest}</Markdown>
+            ) : null}
+          </div>
+        );
+      } catch {}
+    }
+
+    // Back-compat: if content looks like a plain weather JSON, render it nicely
+    try {
+      const parsed = JSON.parse(content);
+      if (
+        typeof parsed === 'object' && parsed !== null &&
+        (parsed.temp_c !== undefined || parsed.condition || parsed.icon) &&
+        (parsed.location || parsed.region || parsed.country)
+      ) {
+        return <WeatherCard data={parsed} />;
+      }
+      if (parsed.type === 'tool-call') {
+        return (
+          <div className="bg-muted/50 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+              <span className="text-sm font-medium">Tool Call</span>
+            </div>
+            <pre className="text-sm text-muted-foreground whitespace-pre-wrap">{parsed.toolName}</pre>
+          </div>
+        );
+      }
+    } catch {}
+
+    return <Markdown>{content}</Markdown>;
+  }
+
   if (loading) {
     return (
-      <div className="h-screen bg-background flex">
+      <div className="h-screen bg-background flex flex-col">
+        <Header onNewChat={handleNewChat} />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
@@ -356,54 +525,81 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
     );
   }
 
-  if (!chat) {
-    return (
-      <div className="h-screen bg-background flex">
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <p className="text-muted-foreground">Chat not found</p>
-            <Button onClick={() => router.push("/")} className="mt-4">
-              Go Home
-            </Button>
+  return (
+    <div className="h-screen bg-background flex flex-col">
+      {/* Header */}
+      <Header onNewChat={handleNewChat} />
+      
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-h-0">
+        {/* Messages Container */}
+        <div className="flex-1 overflow-hidden">
+          <div 
+            ref={messagesContainerRef}
+            data-messages-container
+            className="h-full overflow-y-auto px-4 py-6 space-y-6 max-w-4xl w-full mx-auto scrollbar-hide"
+          >
+            {elements.length === 0 ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center max-w-2xl mx-auto">
+                  <h2 className="text-2xl font-semibold mb-2">{chat?.title}</h2>
+                  <p className="text-muted-foreground">
+                    Start a conversation with your AI assistant
+                  </p>
+                </div>
+              </div>
+            ) : (
+              elements.map((element, index) => (
+                <div key={`message-${index}`}>
+                  {element}
+                </div>
+              ))
+            )}
+            
+            {/* Loading Indicator */}
+            {isLoading && <AISkeletonLoading />}
+            
+            <div ref={messagesEndRef} data-messages-end />
           </div>
         </div>
-      </div>
-    );
-  }
 
-  return (
-    <div className="h-screen bg-background flex relative overflow-hidden">
-      <div className="flex-1 flex flex-col min-w-0 relative">
-        {/* Header */}
-        <Header onNewChat={handleNewChat} />
-        
-        {/* Chat Messages */}
-        <div
-          ref={messagesContainerRef}
-          className="flex-1 overflow-y-auto px-4 py-6 space-y-6 pr-4 relative z-10"
-        >
-          {elements.length === 0 ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center max-w-2xl mx-auto">
-                <h2 className="text-2xl font-semibold mb-2">{chat.title}</h2>
-                <p className="text-muted-foreground">
-                  Start a conversation with your AI assistant
-                </p>
+        {/* Input Area - Fixed at bottom */}
+        <div className="border-t border-border bg-background input-area">
+          <div className="max-w-4xl mx-auto p-4 space-y-4">
+            {/* File preview area */}
+            {pendingAttachment && (
+              <div className="animate-in slide-in-from-top-4 duration-300">
+                {pendingAttachment.type === 'image' ? (
+                  <ChatImage 
+                    src={pendingAttachment.url} 
+                    alt={pendingAttachment.name}
+                    className="mb-4"
+                    size="sm"
+                  />
+                ) : (
+                  <FilePreview 
+                    file={{
+                      name: pendingAttachment.name,
+                      mimeType: pendingAttachment.mimeType,
+                      url: pendingAttachment.url,
+                      type: pendingAttachment.type,
+                      width: pendingAttachment.width,
+                      height: pendingAttachment.height,
+                      size: pendingAttachment.size,
+                    }}
+                    onRemove={() => setPendingAttachment(null)}
+                  />
+                )}
               </div>
-            </div>
-          ) : (
-            elements.map((element, index) => (
-              <div key={`message-${index}`}>
-                {element}
-              </div>
-            ))
-          )}
-        </div>
-
-        {/* Input Area */}
-        <div className="border-t border-border p-4 bg-background relative z-20">
-          <div className="max-w-4xl mx-auto space-y-4">
-            <div className="flex items-end gap-2">
+            )}
+            
+            <div className="flex items-end gap-3">
+              <AttachmentButton
+                onFileSelect={handleFileSelect}
+                disabled={isLoading}
+                uploading={uploading}
+              />
+              
               <Textarea
                 placeholder="Type your message..."
                 value={input}
@@ -416,9 +612,10 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
                     }
                   }
                 }}
-                className="min-h-[60px] max-h-[200px] resize-none"
+                className="min-h-[60px] max-h-[200px] resize-none flex-1"
                 disabled={isLoading}
               />
+              
               <Button
                 onClick={() => onSubmit(input.trim())}
                 disabled={!input.trim() || isLoading}

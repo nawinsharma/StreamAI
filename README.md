@@ -257,3 +257,19 @@ When image generation is properly implemented, images will be:
 - Stored in the chat history as JSON data
 - Regenerated when users refresh the page or revisit chat history
 - Optimized and delivered through Cloudinary's CDN
+
+## File uploads and chat with files
+
+- Set environment variables for Cloudinary:
+  - `CLOUDINARY_CLOUD_NAME`
+  - `CLOUDINARY_API_KEY`
+  - `CLOUDINARY_API_SECRET`
+
+- Optional parsers for chat-with-docs:
+  - `pdf-parse`, `mammoth`, `xlsx` are installed. No extra env needed.
+
+### How it works
+
+- Use the attach button in chat to upload any file (images, PDF, DOCX, MD, XLS/XLSX, JSON, TXT). Files are uploaded to Cloudinary and a record is saved as `Attachment` associated to your `Chat`.
+- When you send a message after uploading, the attachment is linked to that message so it appears in history.
+- Images are displayed inline; other files are shown as links.
