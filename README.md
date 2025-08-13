@@ -7,6 +7,7 @@ A powerful AI assistant that combines text and image processing capabilities wit
 - **Multimodal AI**: Process both text and images in a single conversation
 - **Real-time Streaming**: Get instant responses with streaming UI updates
 - **Comprehensive Tool Suite**: Access to weather, search, charts, audio, video, and document tools
+- **Image Storage**: Cloudinary integration for persistent image storage and retrieval
 - **Modern UI**: Beautiful, responsive interface built with Next.js and Tailwind CSS
 - **Error Handling**: Robust error handling with user-friendly messages
 - **File Upload**: Support for image uploads (JPEG, PNG, GIF, WebP) up to 1MB
@@ -59,7 +60,24 @@ Create beautiful, interactive charts from your data.
 - Polar area charts
 - Radar charts
 
-### 4. Image Analysis Tool
+### 4. Image Generation Tool
+Generate AI images based on text prompts using Google AI Gemini with Cloudinary storage.
+
+**Example:**
+```
+"Generate an image of a futuristic city skyline"
+```
+
+**Features:**
+- AI-powered image generation using Google AI Gemini
+- Creative text-to-image conversion with enhanced prompts
+- Cloudinary cloud storage for persistence
+- Images saved in chat history for later viewing
+- Automatic image optimization and delivery
+- Beautiful placeholder images with gradient designs
+- Multiple color schemes and visual effects
+
+### 5. Image Analysis Tool
 Analyze and process uploaded images with AI.
 
 **Example:**
@@ -72,7 +90,7 @@ Upload an image and ask: "What objects do you see in this image?"
 - Image description and analysis
 - Visual question answering
 
-### 5. Audio Tool
+### 6. Audio Tool
 Process and analyze audio content.
 
 **Example:**
@@ -84,7 +102,7 @@ Process and analyze audio content.
 - Text-to-speech conversion
 - Audio processing capabilities
 
-### 6. Video Tool
+### 7. Video Tool
 Handle video-related tasks and processing.
 
 **Example:**
@@ -96,7 +114,7 @@ Handle video-related tasks and processing.
 - Video search and recommendations
 - Video content analysis
 
-### 7. Document Tool
+### 8. Document Tool
 Process and analyze document content.
 
 **Example:**
@@ -140,6 +158,9 @@ Process and analyze document content.
    GOOGLE_AI_API_KEY=your_google_ai_api_key_here
    TAVILY_API_KEY=your_tavily_api_key_here
    WEATHER_API_KEY=your_weather_api_key_here
+   CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
+   CLOUDINARY_API_KEY=your_cloudinary_api_key
+   CLOUDINARY_API_SECRET=your_cloudinary_api_secret
    ```
 
 4. **Run the development server**
@@ -197,6 +218,9 @@ src/
 | `GOOGLE_AI_API_KEY` | Google AI API key for image generation (placeholder) | No |
 | `TAVILY_API_KEY` | Tavily API key for web search | No |
 | `WEATHER_API_KEY` | Weather API key for weather data | No |
+| `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name for image storage | No |
+| `CLOUDINARY_API_KEY` | Cloudinary API key for image storage | No |
+| `CLOUDINARY_API_SECRET` | Cloudinary API secret for image storage | No |
 
 ### API Keys Setup
 
@@ -204,10 +228,48 @@ src/
 2. **Google AI API Key**: Get from [Google AI Studio](https://aistudio.google.com/) (currently placeholder for image generation)
 3. **Tavily API Key**: Get from [Tavily](https://tavily.com/) for enhanced web search
 4. **Weather API Key**: Get from [WeatherAPI.com](https://www.weatherapi.com/) for weather data
+5. **Cloudinary Setup**: Get from [Cloudinary](https://cloudinary.com/) for image storage
+   - Sign up for a free Cloudinary account
+   - Get your Cloud Name, API Key, and API Secret from your dashboard
+   - Add them to your `.env.local` file for persistent image storage
 
 ### Note on Image Generation
 
-The image generation feature currently uses a placeholder implementation for Google AI. For production use, you may want to:
-- Use OpenAI DALL-E for image generation
-- Wait for Google's image generation API to become more widely available
-- Integrate with other image generation services
+The image generation feature now uses Google AI Gemini for creative text-to-image conversion. The implementation includes:
+
+- **Gemini Integration**: Uses Google AI Gemini 1.5 Pro for enhanced prompt processing
+- **Creative Enhancement**: Generates detailed descriptions and visual concepts
+- **Beautiful Placeholders**: Creates sophisticated SVG images with gradients and effects
+- **Cloudinary Storage**: Automatically uploads and stores images for persistence
+- **Chat History**: Images are saved and regenerated when revisiting conversations
+
+For production use with actual image generation, you may want to:
+- Integrate with OpenAI DALL-E for photorealistic images
+- Use Stable Diffusion API for artistic images
+- Implement Google's Imagen when it becomes available
+- Add more sophisticated image generation services
+
+### Image Storage with Cloudinary
+
+When image generation is properly implemented, images will be:
+- Generated using AI services
+- Automatically uploaded to Cloudinary for persistent storage
+- Stored in the chat history as JSON data
+- Regenerated when users refresh the page or revisit chat history
+- Optimized and delivered through Cloudinary's CDN
+
+## File uploads and chat with files
+
+- Set environment variables for Cloudinary:
+  - `CLOUDINARY_CLOUD_NAME`
+  - `CLOUDINARY_API_KEY`
+  - `CLOUDINARY_API_SECRET`
+
+- Optional parsers for chat-with-docs:
+  - `pdf-parse`, `mammoth`, `xlsx` are installed. No extra env needed.
+
+### How it works
+
+- Use the attach button in chat to upload any file (images, PDF, DOCX, MD, XLS/XLSX, JSON, TXT). Files are uploaded to Cloudinary and a record is saved as `Attachment` associated to your `Chat`.
+- When you send a message after uploading, the attachment is linked to that message so it appears in history.
+- Images are displayed inline; other files are shown as links.

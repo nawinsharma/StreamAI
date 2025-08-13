@@ -1,29 +1,24 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { useActions } from "ai/rsc";
-import { HumanMessageText, AISkeletonLoading } from "@/components/message";
+import { useState, useRef } from "react";
+// Removed: import { useActions } from "ai/rsc";
+import { AISkeletonLoading } from "@/components/message";
 import { useScrollToBottom } from "@/components/use-scroll-to-bottom";
 import { toast } from "sonner";
 import { ErrorHandler } from "@/lib/error-handler";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { Header } from "@/components/ui/Header";
-
-const convertFileToBase64 = (file: File): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      const base64String = reader.result as string;
-      resolve(base64String);
-    };
-    reader.onerror = (error) => {
-      reject(error);
-    };
-    reader.readAsDataURL(file);
-  });
+import { useUser } from "@/context/UserContext";
+import { useRouter } from "next/navigation";
+import { useChatStore } from "@/lib/chat-store";
+import axios from "axios";
+import { FilePreview } from "@/components/ui/file-preview";
+import { AttachmentButton } from "@/components/ui/attachment-button";
+import { ChatImage } from "@/components/ui/chat-image";
+import { Actions, Action } from "@/components/ui/actions";
+import { Copy, ThumbsUp, ThumbsDown, RotateCcw } from "lucide-react";
+import { Markdown } from "@/components/ui/markdown";
 
 // Suggestion questions component
 const SuggestionQuestions = ({ onQuestionClick }: { onQuestionClick: (question: string, shouldAutoSubmit?: boolean) => void }) => {
@@ -40,7 +35,6 @@ const SuggestionQuestions = ({ onQuestionClick }: { onQuestionClick: (question: 
 
   return (
     <div className="mb-4">
-      <p className="text-sm text-muted-foreground mb-3 text-center">Try asking me:</p>
       <div className="relative overflow-hidden">
         {/* Left fade gradient */}
         <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none"></div>
@@ -99,10 +93,10 @@ const QuickActions = ({ onActionClick }: { onActionClick: (action: string, shoul
           key={index}
           onClick={() => onActionClick(action.action, action.autoSubmit)}
           variant="outline"
-          className="h-auto p-4 flex flex-col items-center space-y-2 rounded-xl hover:bg-primary/5 hover:border-primary/30 transition-all duration-200"
+          className="h-auto p-4 flex flex-col items-center gap-2 hover:bg-primary/5 hover:border-primary/30 transition-all duration-200"
         >
           <span className="text-2xl">{action.icon}</span>
-          <span className="text-xs font-medium">{action.label}</span>
+          <span className="text-xs text-center">{action.label}</span>
         </Button>
       ))}
     </div>
@@ -110,75 +104,91 @@ const QuickActions = ({ onActionClick }: { onActionClick: (action: string, shoul
 };
 
 export default function Home() {
-  const { sendMessage } = useActions();
-
   const [elements, setElements] = useState<React.ReactNode[]>([]);
   const [input, setInput] = useState("");
-  const [selectedFile, setSelectedFile] = useState<File>();
   const [isLoading, setIsLoading] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
-
+  const [currentChatId, setCurrentChatId] = useState<string | null>(null);
+  const user = useUser();
+  const router = useRouter();
+  // Removed: const { sendMessage } = useActions();
+  const { incrementChat, isLimitReached, getRemainingChats } = useChatStore();
+  const [messagesContainerRef, messagesEndRef, scrollToBottom] = useScrollToBottom<HTMLDivElement>();
   const formRef = useRef<HTMLFormElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [pendingAttachment, setPendingAttachment] = useState<{ id: string; name: string; url: string; type: 'image' | 'file'; mimeType?: string; size?: number; extractedTextPreview?: string | null } | null>(null);
+  const [uploading, setUploading] = useState(false);
 
-  const [messagesContainerRef, messagesEndRef] =
-    useScrollToBottom<HTMLDivElement>();
-
-  useEffect(() => inputRef.current?.focus(), []);
-
-  // Auto-resize textarea
-  useEffect(() => {
-    const textarea = inputRef.current;
-    if (textarea) {
-      textarea.style.height = 'auto';
-      textarea.style.height = `${textarea.scrollHeight}px`;
+  const handleFileSelect = async (file: File) => {
+    try {
+      setUploading(true);
+      // Ensure chat exists for auth flow so we can associate the upload
+      let ensuredChatId = currentChatId;
+      if (!ensuredChatId) {
+        const r = await axios.post("/api/chats", { title: "New Chat" });
+        ensuredChatId = r.data.id;
+        setCurrentChatId(ensuredChatId);
+        router.push(`/chat/${ensuredChatId}`);
+      }
+      const form = new FormData();
+      form.append('chatId', ensuredChatId!);
+      form.append('file', file);
+      const res = await fetch(`/api/upload`, { method: 'POST', body: form });
+      if (!res.ok) throw new Error('Upload failed');
+      const data = await res.json();
+      setPendingAttachment({ id: data.attachment.id ?? 'tmp', name: data.attachment.name, url: data.attachment.url, type: data.attachment.type, mimeType: data.attachment.mimeType, size: data.attachment.size, extractedTextPreview: data.attachment.extractedTextPreview });
+      toast.success('File uploaded');
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to upload file');
+    } finally {
+      setUploading(false);
     }
-  }, [input]);
-
-  // Check if user has interacted (typing or has messages)
-  useEffect(() => {
-    setHasInteracted(input.length > 0 || elements.length > 0);
-  }, [input, elements.length]);
-
-  const handleFileSelect = (file: File) => {
-    const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
-    if (!allowedTypes.includes(file.type)) {
-      ErrorHandler.handleValidationError("File type", "Please select a valid image file (JPEG, PNG, GIF, or WebP)");
-      return;
-    }
-
-    const fileSizeInMB = file.size / (1024 * 1024);
-    if (fileSizeInMB > 1) {
-      toast.error(`File size must be less than 1MB. Current size: ${fileSizeInMB.toFixed(2)}MB`);
-      return;
-    }
-
-    setSelectedFile(file);
   };
 
   const handleSuggestionClick = (question: string, shouldAutoSubmit: boolean = false) => {
     setInput(question);
-    setHasInteracted(true);
-    
     if (shouldAutoSubmit) {
-      // Auto-submit after a short delay to ensure input is set
       setTimeout(() => {
         onSubmit(question);
       }, 100);
     } else {
-      // Just focus the input after setting the value
+      // Focus the input after setting the value
       setTimeout(() => {
         inputRef.current?.focus();
       }, 0);
     }
   };
 
-  const handleNewChat = () => {
+  const handleNewChat = async () => {
+    if (!user && isLimitReached()) {
+      toast.error("Please sign in to continue chatting.");
+      return;
+    }
+    
+    if (user) {
+      // Create new chat for authenticated users
+      try {
+        const response = await axios.post("/api/chats", {
+          title: "New Chat",
+        });
+
+        if (response.status === 200) {
+          const chat = response.data;
+          router.push(`/chat/${chat.id}`);
+          return;
+        }
+      } catch (error) {
+        console.error("Error creating chat:", error);
+        toast.error("Failed to create new chat");
+      }
+    }
+    
+    // For non-authenticated users or if chat creation fails, just clear the current chat
     setElements([]);
     setInput("");
-    setSelectedFile(undefined);
     setHasInteracted(false);
+    setCurrentChatId(null);
     // Focus the input after clearing
     setTimeout(() => {
       inputRef.current?.focus();
@@ -188,59 +198,179 @@ export default function Home() {
   async function onSubmit(prompt: string) {
     if (!prompt || isLoading) return;
 
+    // Check if limit is reached - only for non-authenticated users
+    if (!user && isLimitReached()) {
+      toast.error("Please sign in to continue chatting.");
+      return;
+    }
+
     setIsLoading(true);
     const newElements = [...elements];
-    let base64File: string | undefined = undefined;
 
-    if (selectedFile) {
+    // For authenticated users, create a new chat if this is the first message
+    let chatId: string | undefined = undefined;
+    if (user && elements.length === 0) {
       try {
-        base64File = await convertFileToBase64(selectedFile);
+        const response = await axios.post("/api/chats", {
+          title: prompt.substring(0, 50) + (prompt.length > 50 ? "..." : ""),
+        });
+
+        if (response.status === 200) {
+          const chat = response.data;
+          chatId = chat.id;
+          // Redirect to the new chat page with the initial message
+          router.push(`/chat/${chat.id}?message=${encodeURIComponent(prompt)}`);
+          return; // Exit early, the chat page will handle the message
+        } else {
+          console.error("Failed to create chat");
+          toast.error("Failed to create new chat");
+        }
       } catch (error) {
-        ErrorHandler.handleGeneralError(error instanceof Error ? error : "Failed to process file", "File processing");
-        setIsLoading(false);
-        return;
+        console.error("Error creating chat:", error);
+        toast.error("Failed to create new chat");
       }
     }
 
     // Add user message to the chat
     newElements.push(
-      <div className="message-enter animate-in slide-in-from-bottom-4 duration-500">
-        {selectedFile && (
-          <div className="mb-4 rounded-xl overflow-hidden border border-border/50 shadow-lg">
-            <img
-              src={URL.createObjectURL(selectedFile)}
-              alt="Uploaded image"
-              className="w-full max-w-2xl h-auto object-cover"
-            />
+      <div key={`user-${Date.now()}`} className="flex justify-end mb-6 animate-in slide-in-from-right-2 duration-300">
+        <div className="flex flex-col items-end space-y-2 max-w-[85%]">
+          {pendingAttachment ? (
+            <div className="mb-4">
+              {pendingAttachment.type === 'image' ? (
+                <ChatImage 
+                  src={pendingAttachment.url} 
+                  alt={pendingAttachment.name}
+                  className="mb-4"
+                  size="sm"
+                />
+              ) : (
+                <FilePreview 
+                  file={{
+                    name: pendingAttachment.name,
+                    mimeType: pendingAttachment.mimeType || 'application/octet-stream',
+                    url: pendingAttachment.url,
+                    type: pendingAttachment.type,
+                    width: null,
+                    height: null,
+                    size: pendingAttachment.size,
+                  }}
+                  onRemove={() => setPendingAttachment(null)}
+                />
+              )}
+            </div>
+          ) : null}
+          <div className="px-6 py-4 rounded-3xl rounded-br-lg bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-lg border border-blue-600/20 backdrop-blur-sm">
+            <div className="text-sm leading-relaxed font-medium">{prompt}</div>
           </div>
-        )}
-        <HumanMessageText content={prompt} />
+          <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center space-x-1">
+            <div className="w-1 h-1 bg-gray-400 dark:bg-gray-500 rounded-full"></div>
+            <span>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+          </div>
+        </div>
       </div>
     );
 
     // Update elements immediately to show user message
     setElements(newElements);
+    setHasInteracted(true);
+    
+    // Trigger scroll to bottom after adding user message
+    setTimeout(scrollToBottom, 50);
 
     try {
-      const element = await sendMessage({
+      const response = await axios.post("/api/chat", {
         prompt,
-        file: base64File
+        file: undefined,
+        chatId: chatId,
+        attachmentText: pendingAttachment?.type !== 'image' ? pendingAttachment?.extractedTextPreview || undefined : undefined,
+        attachmentMeta: pendingAttachment
           ? {
-              base64: base64File,
+              name: pendingAttachment.name,
+              mimeType: pendingAttachment.mimeType || 'application/octet-stream',
+              url: pendingAttachment.url,
+              type: pendingAttachment.type,
+              width: null,
+              height: null,
+              size: pendingAttachment.size,
             }
           : undefined,
       });
       
+      // Normalize UI content: support both { ui: string|ReactNode } and plain text responses
+      const uiContent = (response?.data && typeof response.data === 'object' && 'ui' in response.data)
+        ? (response.data as any).ui
+        : response?.data;
+      
       // Add AI response
       newElements.push(
-        <div className="message-enter animate-in slide-in-from-bottom-4 duration-500">
-          {element.ui}
-        </div>,
+        <div key={`ai-${Date.now()}`} className="flex justify-start mb-6 animate-in slide-in-from-left-2 duration-300 group">
+          <div className="flex flex-col items-start space-y-2 max-w-[85%]">
+            <div className="px-6 py-4 rounded-3xl rounded-bl-lg text-gray-900 dark:text-gray-100">
+              {typeof uiContent === 'string' ? (
+                <Markdown>{uiContent}</Markdown>
+              ) : (
+                uiContent
+              )}
+            </div>
+            
+            {/* Actions - Show on hover - only if element.ui is not already a complete message component */}
+            {typeof uiContent === 'string' && (
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <Actions className="mt-2">
+                  <Action
+                    onClick={() => {
+                      navigator.clipboard.writeText(uiContent as string);
+                      toast.success("Copied to clipboard");
+                    }}
+                    label="Copy"
+                  >
+                    <Copy className="size-3" />
+                  </Action>
+                  <Action
+                    onClick={() => toast.success("Message liked")}
+                    label="Like"
+                  >
+                    <ThumbsUp className="size-3" />
+                  </Action>
+                  <Action
+                    onClick={() => toast.success("Message disliked")}
+                    label="Dislike"
+                  >
+                    <ThumbsDown className="size-3" />
+                  </Action>
+                  <Action
+                    onClick={() => toast.success("Regenerating response...")}
+                    label="Redo"
+                  >
+                    <RotateCcw className="size-3" />
+                  </Action>
+                </Actions>
+              </div>
+            )}
+          </div>
+        </div>
       );
 
       setElements(newElements);
       setInput("");
-      setSelectedFile(undefined);
+      setPendingAttachment(null);
+      
+      // Trigger scroll to bottom after adding AI response
+      setTimeout(scrollToBottom, 50);
+      
+      // Increment chat count after successful message - only for non-authenticated users
+      if (!user) {
+        incrementChat();
+        
+        // Show remaining chats warning if getting close to limit - only for non-authenticated users
+        const remaining = getRemainingChats();
+        if (remaining <= 2 && remaining > 0) {
+          toast.warning(`You have ${remaining} chat${remaining === 1 ? '' : 's'} remaining.`);
+        } else if (remaining === 0) {
+          toast.error("Please sign in to continue chatting.");
+        }
+      }
     } catch (error) {
       console.error("Error sending message:", error);
       
@@ -255,176 +385,122 @@ export default function Home() {
     }
   }
 
+  // Limit reached overlay
+  const limitReached = isLimitReached();
+
   return (
     <div className="h-screen bg-background flex flex-col">
       {/* Header */}
       <Header onNewChat={handleNewChat} />
-
-      {/* Main Chat Area */}
-      <main className={`flex-1 flex flex-col max-w-7xl mx-auto w-full ${hasInteracted ? '' : 'justify-center'}`}>
-        {/* Messages Container - Only show when there are messages or user is typing */}
-        {hasInteracted && (
-          <div 
-            ref={messagesContainerRef}
-            className="flex-1 overflow-y-auto px-6 py-6 space-y-6"
-          >
-            {/* Date Divider */}
-            {elements.length > 0 && (
-              <div className="flex items-center justify-center">
-                <div className="px-4 py-2 rounded-full bg-muted text-xs text-muted-foreground">
-                  {new Date().toLocaleDateString("en-US", {
-                    weekday: "long",
-                    year: "numeric",
-                    month: "long",
-                    day: "2-digit",
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Messages */}
-            {elements.map((element, index) => (
-              <div key={`message-${index}`}>
-                {element}
-              </div>
-            ))}
-            
-            {/* Loading Indicator */}
-            {isLoading && <AISkeletonLoading />}
-            
-            <div ref={messagesEndRef} />
-          </div>
-        )}
-
-        {/* Welcome Message - Only show when no interaction */}
-        {!hasInteracted && (
-          <div className="text-center px-6 py-12">
-            <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-primary-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-semibold text-foreground mb-2">Auralux Multimodal AI</h2>
-            <p className="text-muted-foreground max-w-md mx-auto mb-8">
-              A powerful AI assistant that combines text, image and audio processing capabilities with a comprehensive suite of tools for enhanced productivity and creativity.
-            </p>
-            
-            {/* Quick Actions */}
-            <QuickActions onActionClick={handleSuggestionClick} />
-          </div>
-        )}
-
-        {/* Input Area */}
-        <div className={`border-t border-border p-6 flex-shrink-0 ${!hasInteracted ? 'mt-auto' : ''}`}>
-          {/* Suggestion Questions - only show when no messages and not typing */}
-          {!hasInteracted && (
-            <SuggestionQuestions onQuestionClick={handleSuggestionClick} />
-          )}
-          
-          <form
-            ref={formRef}
-            onSubmit={async (e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              await onSubmit(input);
-            }}
-            className="flex items-end space-x-3"
-          >
-            {/* File Upload */}
-            <Button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              variant="outline"
-              size="icon"
-              className="rounded-xl"
-              title="Upload image"
+      
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-h-0">
+        {/* Messages Container */}
+        <div className="flex-1 overflow-hidden">
+          {hasInteracted ? (
+            <div 
+              ref={messagesContainerRef}
+              data-messages-container
+              className="h-full overflow-y-auto px-4 py-6 space-y-6 max-w-4xl w-full mx-auto scrollbar-hide"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-              </svg>
-            </Button>
-            
-            <input
-              ref={fileInputRef}
-              type="file"
-              className="hidden"
-              accept="image/*"
-              onChange={(e) => {
-                if (e.target.files && e.target.files.length > 0) {
-                  handleFileSelect(e.target.files[0]);
-                }
-              }}
-            />
-
-            {/* Text Input */}
-            <div className="flex-1 relative">
-              <Textarea
-                ref={inputRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask anything..."
-                className="min-h-[44px] max-h-32 resize-none rounded-xl"
-                rows={1}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    formRef.current?.requestSubmit();
-                  }
-                }}
-              />
-              {selectedFile && (
-                <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs">
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
+              {/* Date Divider */}
+              {elements.length > 0 && (
+                <div className="flex items-center justify-center">
+                  <div className="px-4 py-2 rounded-full bg-muted text-xs text-muted-foreground">
+                    {new Date().toLocaleDateString("en-US", {
+                      weekday: "long",
+                      year: "numeric",
+                      month: "long",
+                      day: "2-digit",
+                    })}
+                  </div>
                 </div>
               )}
+
+              {/* Messages */}
+              {elements.map((element, index) => (
+                <div key={`message-${index}`}>
+                  {element}
+                </div>
+              ))}
+              
+              {/* Loading Indicator */}
+              {isLoading && <AISkeletonLoading />}
+              
+              <div ref={messagesEndRef} data-messages-end />
             </div>
-
-            {/* Send Button */}
-            <Button
-              type="submit"
-              disabled={!input.trim() || isLoading}
-              size="icon"
-              className="rounded-xl"
-              title="Send message"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-              </svg>
-            </Button>
-          </form>
-
-          {/* File Preview */}
-          {selectedFile && (
-            <div className="mt-3 p-3 rounded-xl bg-muted border border-border flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-foreground">{selectedFile.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                  </p>
-                </div>
+          ) : (
+            /* Welcome Message - Only show when no interaction */
+            <div className="h-full flex items-center justify-center px-6">
+              <div className="text-center max-w-2xl mx-auto">
+                <h1 className="text-3xl font-bold mb-4">Welcome {user ? user?.name : "User"}</h1>
+                <p className="text-muted-foreground mb-8">
+                  Start a conversation with your AI assistant. You can ask questions, analyze images, or get help with various tasks.
+                </p>
+                {/* Quick Actions */}
+                <QuickActions onActionClick={handleSuggestionClick} />
               </div>
-              <Button
-                onClick={() => setSelectedFile(undefined)}
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </Button>
             </div>
           )}
         </div>
-      </main>
+
+        {/* Input Area - Fixed at bottom */}
+        <div className="border-t border-border bg-background input-area">
+          <div className="max-w-4xl mx-auto p-4">
+            {/* Suggestion Questions - only show when no messages and not typing */}
+            {!hasInteracted && (
+              <SuggestionQuestions onQuestionClick={handleSuggestionClick} />
+            )}
+            
+            <form
+              ref={formRef}
+              onSubmit={async (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                await onSubmit(input);
+              }}
+              className="flex items-end gap-3"
+            >
+              {/* File Upload */}
+              <AttachmentButton
+                onFileSelect={handleFileSelect}
+                disabled={!user && limitReached}
+                uploading={uploading}
+              />
+              
+              {/* Text Input */}
+              <div className="flex-1 relative">
+                <Textarea
+                  ref={inputRef}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      if (input.trim()) {
+                        onSubmit(input.trim());
+                      }
+                    }
+                  }}
+                  placeholder="Type your message..."
+                  className="min-h-[60px] max-h-[200px] resize-none pr-12"
+                  disabled={isLoading || (!user && limitReached)}
+                />
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="absolute right-2 bottom-2 h-8 w-8 p-0"
+                  disabled={!input.trim() || isLoading || (!user && limitReached)}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                  </svg>
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

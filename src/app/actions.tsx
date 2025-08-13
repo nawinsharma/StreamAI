@@ -1,157 +1,257 @@
-import { agentExecutor } from "@/lib/graph";
-import { HumanMessage, AIMessage } from "@langchain/core/messages";
-import { CoreMessage, generateId } from "ai";
-import { createAI, getMutableAIState } from "ai/rsc";
+import { CoreMessage, generateId, streamText } from "ai";
 import { ReactNode } from "react";
-import { streamRunnableUI } from "./server";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import prisma from "@/lib/prisma";
+import { google } from "@ai-sdk/google";
 
 interface InputProps {
   prompt: string;
   file?: {
     base64: string;
   };
+  chatId?: string;
+  attachmentMeta?: { name: string; mimeType: string; url: string; type: 'image' | 'file'; width?: number | null; height?: number | null };
+  attachmentText?: string;
+}
+
+// Helper function to format tool responses
+function formatToolResponse(toolResult: any): string {
+  if (typeof toolResult === 'string') {
+    return toolResult;
+  }
+  
+  if (typeof toolResult === 'object') {
+    // Handle chart data - check for the exact structure we're getting
+    if (toolResult.type && (toolResult.type === 'pie' || toolResult.type === 'bar' || toolResult.type === 'line') && toolResult.data) {
+      // Save chart data as JSON so it can be parsed back into a chart component
+      return JSON.stringify(toolResult);
+    }
+    
+    // Handle weather data
+    if (toolResult.weather || toolResult.temperature || toolResult.location) {
+      if (toolResult.weather) {
+        // Save weather data as JSON so it can be parsed back into a weather component
+        return JSON.stringify(toolResult.weather);
+      }
+      return `Weather: ${JSON.stringify(toolResult, null, 2)}`;
+    }
+    
+    // Handle YouTube data
+    if (toolResult.youtube || toolResult.videos) {
+      const videos = toolResult.youtube || toolResult.videos;
+      if (Array.isArray(videos)) {
+        // Save YouTube data as JSON so it can be parsed back into a video component
+        return JSON.stringify(videos);
+      }
+      return `YouTube Results:\n${JSON.stringify(videos, null, 2)}`;
+    }
+    
+    // Handle image data
+    if (toolResult.type === 'image' && toolResult.cloudinary) {
+      // Save image data as JSON so it can be parsed back into an image component
+      return JSON.stringify(toolResult);
+    }
+    
+    // Handle web search results
+    if (toolResult.search || toolResult.results) {
+      const results = toolResult.search || toolResult.results;
+      if (Array.isArray(results)) {
+        let response = `Search Results (${results.length} results):\n`;
+        results.forEach((result: any, index: number) => {
+          response += `${index + 1}. ${result.title || result.name || 'Unknown'}\n`;
+        });
+        return response;
+      }
+      return `Search Results:\n${JSON.stringify(results, null, 2)}`;
+    }
+    
+    // Generic object formatting
+    return `Tool Response:\n${JSON.stringify(toolResult, null, 2)}`;
+  }
+  
+  return `Tool Response: ${String(toolResult)}`;
 }
 
 const convertChatHistoryToMessage = (chat_history: CoreMessage[]) =>
   chat_history.map(({ role, content }) => {
-    switch (role) {
-      case "user":
-        return new HumanMessage(content as string);
-      case "assistant":
-      case "system":
-        return new AIMessage(content as string);
-      default:
-        throw new Error(`Unknown role: { role}`);
-    }
+    return {
+      role: role === "user" ? "user" : "assistant",
+      content: content as string,
+    };
   });
 
 function processFile(input: InputProps, chat_history: CoreMessage[]) {
-  if (input.file) {
-    const imageTemplate = new HumanMessage({
+  // Handle image attachments for vision analysis
+  if (input.attachmentMeta && input.attachmentMeta.type === 'image') {
+    const imageMessage = {
+      role: "user" as const,
       content: [
         {
-          type: "image_url",
+          type: "image_url" as const,
           image_url: {
-            url: input.file.base64,
+            url: input.attachmentMeta.url,
           },
         },
+        {
+          type: "text" as const,
+          text: input.attachmentText
+            ? `${input.prompt}\n\nContext from attached file (truncated):\n${input.attachmentText}`
+            : input.prompt,
+        },
       ],
-    });
+    };
 
     return {
-      input: input.prompt,
-      chat_history: [
+      messages: [
         ...convertChatHistoryToMessage(chat_history),
-        imageTemplate,
+        imageMessage,
       ],
     };
-  } else {
+  }
+  
+  // Handle legacy file input (base64)
+  if (input.file) {
+    const imageMessage = {
+      role: "user" as const,
+      content: [
+        {
+          type: "image_url" as const,
+          image_url: {
+            url: `data:image/jpeg;base64,${input.file.base64}`,
+          },
+        },
+        {
+          type: "text" as const,
+          text: input.prompt,
+        },
+      ],
+    };
+
     return {
-      input: input.prompt,
-      chat_history: convertChatHistoryToMessage(chat_history),
+      messages: [
+        ...convertChatHistoryToMessage(chat_history),
+        imageMessage,
+      ],
     };
   }
+
+  // Regular text message
+  return {
+    messages: [
+      ...convertChatHistoryToMessage(chat_history),
+      {
+        role: "user" as const,
+        content: input.prompt,
+      },
+    ],
+  };
 }
+
+// Simple state management for messages
+let messageState: CoreMessage[] = [];
 
 async function sendMessage(input: InputProps) {
   "use server";
 
-  const messages = getMutableAIState<typeof AI>("messages");
+  console.log("=== SENDMESSAGE CALLED ===");
+  console.log("Input received:", input);
+  console.log("ChatId:", input.chatId);
+  console.log("Prompt:", input.prompt);
 
   try {
-    const processInputs = processFile(input, messages.get() as CoreMessage[]);
-    const streamUI = streamRunnableUI(agentExecutor() as any, processInputs);
+    const processInputs = processFile(input, messageState);
+    console.log("=== PROCESSING INPUTS ===");
+    console.log("Processed inputs:", processInputs);
+    
+    // Use Google AI with streaming
+    const result = await streamText({
+      model: google('gemini-1.5-flash') as any,
+      messages: processInputs.messages as any,
+      temperature: 0.7,
+      providerOptions: {
+        google: {
+          maxOutputTokens: 4000,
+          safetySettings: [
+            {
+              category: 'HARM_CATEGORY_UNSPECIFIED',
+              threshold: 'BLOCK_LOW_AND_ABOVE',
+            },
+          ],
+        },
+      },
+    });
 
-    (async () => {
+    // Get final text for database storage
+    const finalText = await result.text;
+    
+    // Save messages to database if user is authenticated and chatId is provided
+    if (input.chatId) {
       try {
-        let lastEvent = await streamUI.lastEvent;
-
-        if (typeof lastEvent === "object" && lastEvent !== null) {
-          // Check if there's an error
-          if (lastEvent.invokeModel && lastEvent.invokeModel.error) {
-            messages.done([
-              ...(messages.get() as CoreMessage[]),
-              { role: "user", content: input.prompt },
-              { role: "assistant", content: `I encountered an error: ${lastEvent.invokeModel.error}` },
-            ]);
-            return;
-          }
+        const session = await auth.api.getSession({
+          headers: await headers()
+        });
+        
+        if (session?.user?.id) {
+          console.log("=== SAVING MODEL RESPONSE TO DB ===");
           
-          if (lastEvent.invokeTools && lastEvent.invokeTools.error) {
-            messages.done([
-              ...(messages.get() as CoreMessage[]),
-              { role: "user", content: input.prompt },
-              { role: "assistant", content: `I encountered an error while using a tool: ${lastEvent.invokeTools.error}` },
-            ]);
-            return;
-          }
+          // Save user message
+          const userContent = input.attachmentMeta 
+            ? `${input.prompt}\n${JSON.stringify(input.attachmentMeta)}`
+            : input.prompt;
+            
+          await prisma.message.create({
+            data: {
+              content: userContent,
+              role: "user",
+              chatId: input.chatId,
+            },
+          });
 
-          // Check if it's a model result
-          if (lastEvent.invokeModel && lastEvent.invokeModel.result) {
-            messages.done([
-              ...(messages.get() as CoreMessage[]),
-              { role: "user", content: input.prompt },
-              { role: "assistant", content: lastEvent.invokeModel.result },
-            ]);
-          } 
-          // Check if it's a tool result
-          else if (lastEvent.invokeTools && lastEvent.invokeTools.toolResult) {
-            messages.done([
-              ...(messages.get() as CoreMessage[]),
-              { role: "user", content: input.prompt },
-              {
-                role: "assistant",
-                content: `Total result: ${JSON.stringify(lastEvent.invokeTools.toolResult, null, 2)}`,
-              },
-            ]);
-          } 
-          // Handle other cases or log for debugging
-          else {
-            console.log("Unexpected event structure:", lastEvent);
-            // Still add the user message to maintain conversation flow
-            messages.done([
-              ...(messages.get() as CoreMessage[]),
-              { role: "user", content: input.prompt },
-              { role: "assistant", content: "I processed your request." },
-            ]);
-          }
-        } else {
-          console.log("No valid event received:", lastEvent);
-          // Add user message even if no event
-          messages.done([
-            ...(messages.get() as CoreMessage[]),
-            { role: "user", content: input.prompt },
-            { role: "assistant", content: "I processed your request." },
-          ]);
+          // Save AI response
+          await prisma.message.create({
+            data: {
+              content: finalText,
+              role: "assistant",
+              chatId: input.chatId,
+            },
+          });
+
+          // Update chat's updatedAt timestamp and title if it's the first message
+          await prisma.chat.update({
+            where: { id: input.chatId },
+            data: { 
+              updatedAt: new Date(),
+              title: input.prompt.substring(0, 50) + (input.prompt.length > 50 ? "..." : "")
+            },
+          });
+          console.log("=== MODEL RESPONSE SAVED SUCCESSFULLY ===");
         }
       } catch (error) {
-        console.error("Error processing stream event:", error);
-        messages.done([
-          ...(messages.get() as CoreMessage[]),
-          { role: "user", content: input.prompt },
-          { role: "assistant", content: `I encountered an error while processing your request: ${error instanceof Error ? error.message : 'Unknown error'}` },
-        ]);
+        console.error("Error saving messages to database:", error);
       }
-    })();
-
-    if (input.file) {
-      return {
-        ui: streamUI.ui,
-        url: input.file.base64,
-      };
     }
 
-    return { ui: streamUI.ui };
+    // Update message state
+    messageState = [
+      ...messageState,
+      { role: "user", content: input.prompt },
+      { role: "assistant", content: finalText },
+    ];
+
+    return { ui: finalText };
   } catch (error) {
     console.error("Error in sendMessage:", error);
-    messages.done([
-      ...(messages.get() as CoreMessage[]),
+    
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    messageState = [
+      ...messageState,
       { role: "user", content: input.prompt },
-      { role: "assistant", content: `I encountered an error: ${error instanceof Error ? error.message : 'Unknown error'}` },
-    ]);
+      { role: "assistant", content: `I encountered an error: ${errorMessage}` },
+    ];
     
     // Return a simple UI for error cases
-    return { ui: null };
+    return { ui: `I encountered an error: ${errorMessage}` };
   }
 }
 
@@ -162,23 +262,5 @@ export type AIState = {
   messages: Array<CoreMessage>;
 };
 
-export const AI = createAI<AIState, UIState>({
-  initialAIState: {
-    chatId: generateId(),
-    messages: [],
-  },
-  initialUIState: [],
-  actions: {
-    sendMessage,
-  },
-  onSetAIState: async ({ state, done }) => {
-    "use server";
-
-    if (done) {
-      // save to database if needed
-      console.log("----------- START ----------");
-      console.log(JSON.stringify(state, null, 2));
-      console.log("----------- END ----------");
-    }
-  },
-});
+// Export the sendMessage function for use in the app
+export { sendMessage };

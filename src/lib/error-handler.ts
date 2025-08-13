@@ -3,7 +3,7 @@ import { toast } from "sonner";
 export interface ToolError {
   tool: string;
   error: string;
-  details?: any;
+  details?: unknown;
 }
 
 export class ErrorHandler {
@@ -52,17 +52,19 @@ export class ErrorHandler {
     return contextMessage;
   }
 
-  static handleAPIError(error: any, apiName: string) {
+  static handleAPIError(error: unknown, apiName: string) {
     let userMessage = `Failed to connect to ${apiName}`;
     
-    if (error?.response?.status === 401) {
+    const errorObj = error as { response?: { status?: number }; message?: string };
+    
+    if (errorObj?.response?.status === 401) {
       userMessage = `${apiName} authentication failed. Please check your API key.`;
-    } else if (error?.response?.status === 429) {
+    } else if (errorObj?.response?.status === 429) {
       userMessage = `${apiName} rate limit exceeded. Please try again later.`;
-    } else if (error?.response?.status >= 500) {
+    } else if (errorObj?.response?.status && errorObj.response.status >= 500) {
       userMessage = `${apiName} service is temporarily unavailable. Please try again later.`;
-    } else if (error?.message) {
-      userMessage = `${apiName} error: ${error.message}`;
+    } else if (errorObj?.message) {
+      userMessage = `${apiName} error: ${errorObj.message}`;
     }
 
     // Show toast notification
@@ -77,7 +79,7 @@ export class ErrorHandler {
     return userMessage;
   }
 
-  static handleNetworkError(error: any) {
+  static handleNetworkError(error: unknown) {
     const userMessage = "Network connection failed. Please check your internet connection and try again.";
 
     // Show toast notification
@@ -130,7 +132,7 @@ export function extractToolNameFromError(errorMessage: string): string {
 }
 
 // Helper function to create tool error object
-export function createToolError(toolName: string, error: string, details?: any): ToolError {
+export function createToolError(toolName: string, error: string, details?: unknown): ToolError {
   return {
     tool: toolName,
     error,
