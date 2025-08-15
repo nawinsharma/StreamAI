@@ -15,64 +15,6 @@ interface InputProps {
   attachmentText?: string;
 }
 
-// Helper function to format tool responses
-function formatToolResponse(toolResult: any): string {
-  if (typeof toolResult === 'string') {
-    return toolResult;
-  }
-  
-  if (typeof toolResult === 'object') {
-    // Handle chart data - check for the exact structure we're getting
-    if (toolResult.type && (toolResult.type === 'pie' || toolResult.type === 'bar' || toolResult.type === 'line') && toolResult.data) {
-      // Save chart data as JSON so it can be parsed back into a chart component
-      return JSON.stringify(toolResult);
-    }
-    
-    // Handle weather data
-    if (toolResult.weather || toolResult.temperature || toolResult.location) {
-      if (toolResult.weather) {
-        // Save weather data as JSON so it can be parsed back into a weather component
-        return JSON.stringify(toolResult.weather);
-      }
-      return `Weather: ${JSON.stringify(toolResult, null, 2)}`;
-    }
-    
-    // Handle YouTube data
-    if (toolResult.youtube || toolResult.videos) {
-      const videos = toolResult.youtube || toolResult.videos;
-      if (Array.isArray(videos)) {
-        // Save YouTube data as JSON so it can be parsed back into a video component
-        return JSON.stringify(videos);
-      }
-      return `YouTube Results:\n${JSON.stringify(videos, null, 2)}`;
-    }
-    
-    // Handle image data
-    if (toolResult.type === 'image' && toolResult.cloudinary) {
-      // Save image data as JSON so it can be parsed back into an image component
-      return JSON.stringify(toolResult);
-    }
-    
-    // Handle web search results
-    if (toolResult.search || toolResult.results) {
-      const results = toolResult.search || toolResult.results;
-      if (Array.isArray(results)) {
-        let response = `Search Results (${results.length} results):\n`;
-        results.forEach((result: any, index: number) => {
-          response += `${index + 1}. ${result.title || result.name || 'Unknown'}\n`;
-        });
-        return response;
-      }
-      return `Search Results:\n${JSON.stringify(results, null, 2)}`;
-    }
-    
-    // Generic object formatting
-    return `Tool Response:\n${JSON.stringify(toolResult, null, 2)}`;
-  }
-  
-  return `Tool Response: ${String(toolResult)}`;
-}
-
 const convertChatHistoryToMessage = (chat_history: CoreMessage[]) =>
   chat_history.map(({ role, content }) => {
     return {
