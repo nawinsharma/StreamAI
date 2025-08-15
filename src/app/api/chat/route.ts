@@ -11,8 +11,6 @@ import {
   handleAIChatRequest 
 } from "@/lib/ai-chat-handler";
 
-export const runtime = "nodejs";
-
 /**
  * Extracts text content from a message, handling both string and array formats
  */
@@ -31,6 +29,12 @@ function extractTextFromMessage(message: any): string {
 
 export async function POST(req: NextRequest) {
   try {
+    // Check authentication first
+    const session = await auth.api.getSession({ headers: await headers() }).catch(() => null);
+    if (!session?.user?.id) {
+      return new Response("Unauthorized. Please sign in to continue.", { status: 401 });
+    }
+
     // Parse request body
     const body = await req.json().catch(() => ({}));
     const normalized = normalizeMessages(body);
@@ -44,8 +48,7 @@ export async function POST(req: NextRequest) {
 
     // Extract context
     const chatId: string | undefined = body?.chatId;
-    const session = await auth.api.getSession({ headers: await headers() }).catch(() => null);
-    const userId = session?.user?.id as string | undefined;
+    const userId = session.user.id as string;
     const lastUser = [...normalized].reverse().find(m => m.role === 'user');
 
     if (!lastUser) {
@@ -91,10 +94,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Handle AI chat request (with or without attachments)
+    // Always pass chatId and userId to maintain conversation context
     const chatResponse = await handleAIChatRequest({
       messages: normalized,
-      chatId,
-      userId,
+      chatId: chatId, // This is crucial for context maintenance
+      userId: userId, // Always authenticated user ID
       attachmentMeta,
     });
 
@@ -107,9 +111,28 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     console.error("Chat API error:", error);
+    
+    // Check for quota errors
+    let statusCode = 500;
+    let errorMessage = "Internal server error";
+    
+    if (error instanceof Error) {
+      const errorStr = error.message.toLowerCase();
+      if (errorStr.includes('quota') || errorStr.includes('resource_exhausted')) {
+        statusCode = 429; // Too Many Requests
+        if (errorStr.includes('per day') || errorStr.includes('daily')) {
+          errorMessage = "Daily AI usage limit reached. Please try again tomorrow.";
+        } else if (errorStr.includes('per minute') || errorStr.includes('rate')) {
+          errorMessage = "Too many requests. Please wait a moment and try again.";
+        } else {
+          errorMessage = "AI service quota exceeded. Please try again later.";
+        }
+      }
+    }
+    
     return new Response(
-      "Internal server error", 
-      { status: 500 }
+      errorMessage, 
+      { status: statusCode }
     );
   }
 } 
