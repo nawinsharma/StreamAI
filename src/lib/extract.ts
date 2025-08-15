@@ -1,3 +1,5 @@
+import { pdfToText } from "pdf-ts";
+
 export async function extractTextFromFile(buffer: Buffer, mimeType: string, filename: string): Promise<string | null> {
   try {
     if (mimeType.startsWith('text/')) {
@@ -13,9 +15,10 @@ export async function extractTextFromFile(buffer: Buffer, mimeType: string, file
     }
 
     if (mimeType === 'application/pdf' || filename.toLowerCase().endsWith('.pdf')) {
-      const pdfParse = (await import('pdf-parse')).default as (b: Buffer) => Promise<{ text: string }>;
-      const data = await pdfParse(buffer);
-      return data.text || null;
+      console.log("Starting PDF text extraction with pdf-ts...");
+      const text = await pdfToText(buffer);
+      console.log("PDF text extracted successfully, length:", text.length);
+      return text || null;
     }
 
     if (
@@ -55,6 +58,5 @@ export async function extractTextFromFile(buffer: Buffer, mimeType: string, file
 
 export function truncateText(input: string, maxChars = 15000): string {
   if (!input) return input;
-  if (input.length <= maxChars) return input;
-  return input.slice(0, maxChars);
+  return input.length > maxChars ? input.substring(0, maxChars) + '...' : input;
 } 

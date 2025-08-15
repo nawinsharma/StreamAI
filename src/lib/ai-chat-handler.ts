@@ -121,6 +121,32 @@ function getLastUserMessage(messages: CoreMessage[]): string {
 }
 
 /**
+ * Fetches conversation history from database
+ */
+async function getConversationHistory(chatId: string): Promise<CoreMessage[]> {
+  try {
+    const messages = await prisma.message.findMany({
+      where: { chatId },
+      orderBy: { createdAt: "asc" },
+      select: {
+        role: true,
+        content: true,
+      },
+    });
+
+    console.log(`[Context] Fetched ${messages.length} messages for chat ${chatId}`);
+    
+    return messages.map((msg) => ({
+      role: msg.role as "user" | "assistant",
+      content: msg.content,
+    }));
+  } catch (error) {
+    console.error("Error fetching conversation history:", error);
+    return [];
+  }
+}
+
+/**
  * Handles AI chat requests with streaming response
  */
 export async function handleAIChatRequest(
@@ -132,6 +158,12 @@ export async function handleAIChatRequest(
   // Prepare messages for AI SDK
   let messagesToSend: CoreMessage[];
   let useVisionModel = false;
+
+  // If we have a chatId, fetch the conversation history
+  let conversationHistory: CoreMessage[] = [];
+  if (request.chatId) {
+    conversationHistory = await getConversationHistory(request.chatId);
+  }
 
   if (request.attachmentMeta && request.attachmentMeta.type === 'image') {
     // Handle image attachments for vision analysis
@@ -151,70 +183,119 @@ export async function handleAIChatRequest(
       ],
     };
 
-    messagesToSend = [system, imageMessage];
+    // Include conversation history + current image message
+    messagesToSend = [system, ...conversationHistory, imageMessage];
     useVisionModel = true;
   } else if (request.attachmentMeta && request.attachmentMeta.type === 'file') {
-    // Handle regular file attachments
-    const fileMessage: CoreMessage = {
-      role: "user",
-      content: request.attachmentMeta.extractedTextPreview
-        ? `${getLastUserMessage(request.messages)}\n\nContext from attached file (${request.attachmentMeta.name}):\n${request.attachmentMeta.extractedTextPreview}`
-        : `${getLastUserMessage(request.messages)}\n\nFile attached: ${request.attachmentMeta.name}`,
+    // Handle regular file attachments with proper document context
+    let systemWithContext = system.content;
+    
+    if (request.attachmentMeta.extractedTextPreview) {
+      systemWithContext += `\n\nThe user has uploaded the following document for analysis:\n\nDocument "${request.attachmentMeta.name}":\n${request.attachmentMeta.extractedTextPreview}\n\nUse this document content to answer the user's questions about the uploaded file.`;
+    }
+    
+    const systemWithDocument: CoreMessage = {
+      role: "system",
+      content: systemWithContext,
     };
 
-    messagesToSend = [system, fileMessage];
+    const fileMessage: CoreMessage = {
+      role: "user",
+      content: getLastUserMessage(request.messages) || "Please analyze the uploaded document",
+    };
+
+    // Include conversation history + current file message
+    messagesToSend = [systemWithDocument, ...conversationHistory, fileMessage];
   } else {
-    // Regular text message
-    messagesToSend = [system, ...request.messages];
+    // Regular text message - include conversation history + current message
+    messagesToSend = [system, ...conversationHistory, ...request.messages];
   }
 
   // Convert to UIMessage format and then to ModelMessage format
   const uiMessages = convertToUIMessages(messagesToSend);
   const modelMessages = convertToModelMessages(uiMessages);
 
+  console.log(`[Context] Sending ${messagesToSend.length} messages to AI model (${conversationHistory.length} from history + ${request.messages.length} current)`);
+
   // Use vision model for images, regular model for text
   const modelName = useVisionModel ? "gemini-1.5-pro" : "gemini-2.5-flash";
 
-  const result = await streamText({
-    model: google(modelName) as any,
-    messages: modelMessages,
-    tools: {
-      weather: {
-        description: 'Get current weather information for a specific city',
-        parameters: {
-          type: 'object',
-          properties: {
-            city: {
-              type: 'string',
-              description: 'The city name to get weather for'
-            }
+  try {
+    const result = await streamText({
+      model: google(modelName) as any,
+      messages: modelMessages,
+      tools: {
+        weather: {
+          description: 'Get current weather information for a specific city',
+          parameters: {
+            type: 'object',
+            properties: {
+              city: {
+                type: 'string',
+                description: 'The city name to get weather for'
+              }
+            },
+            required: ['city']
           },
-          required: ['city']
-        },
-        execute: async ({ city }: { city: string }) => {
-          return await getWeather(city);
+          execute: async ({ city }: { city: string }) => {
+            return await getWeather(city);
+          }
         }
-      }
-    },
-  });
+      },
+    });
 
-  const stream = new ReadableStream<Uint8Array>({
-    async start(controller) {
-      const encoder = new TextEncoder();
-      for await (const delta of result.textStream) {
-        assistantCollected += delta;
-        controller.enqueue(encoder.encode(delta));
-      }
-      controller.close();
-      
-      // Save to database if chat context is available
-      if (request.chatId && request.userId) {
-        await saveChatToDatabase(request, assistantCollected);
-      }
-    },
-  });
+    const stream = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        const encoder = new TextEncoder();
+        try {
+          for await (const delta of result.textStream) {
+            assistantCollected += delta;
+            controller.enqueue(encoder.encode(delta));
+          }
+          controller.close();
+          
+          // Save to database if chat context is available
+          if (request.chatId) {
+            await saveChatToDatabase(request, assistantCollected);
+          }
+        } catch (streamError) {
+          console.error("Stream error:", streamError);
+          controller.error(streamError);
+        }
+      },
+    });
 
-  return { stream, finalContent: assistantCollected };
+    return { stream, finalContent: assistantCollected };
+  } catch (error) {
+    console.error("AI chat error:", error);
+    
+    // Create error stream with proper quota error handling
+    const errorStream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        const encoder = new TextEncoder();
+        let errorMessage = "An error occurred while processing your request.";
+        
+        // Check for quota errors
+        if (error instanceof Error) {
+          const errorStr = error.message.toLowerCase();
+          if (errorStr.includes('quota') || errorStr.includes('resource_exhausted')) {
+            if (errorStr.includes('per day') || errorStr.includes('daily')) {
+              errorMessage = "Daily AI usage limit reached. Please try again tomorrow.";
+            } else if (errorStr.includes('per minute') || errorStr.includes('rate')) {
+              errorMessage = "Too many requests. Please wait a moment and try again.";
+            } else {
+              errorMessage = "AI service quota exceeded. Please try again later.";
+            }
+          }
+        }
+        
+        controller.enqueue(encoder.encode(errorMessage));
+        controller.close();
+      },
+    });
+    
+    return { stream: errorStream, finalContent: "Error: An error occurred while processing your request." };
+  }
 }
 
 /**
