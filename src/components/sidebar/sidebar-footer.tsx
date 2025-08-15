@@ -8,7 +8,6 @@ import { User, LogIn, Github } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useUser } from "@/context/UserContext";
 import { useTheme } from "next-themes";
@@ -23,17 +22,12 @@ const SidebarFooterSection = () => {
   const user = useUser();
   const { theme, resolvedTheme } = useTheme();
 
-  // Debug logging
-  console.log("SidebarFooter - user from context:", user);
-  console.log("SidebarFooter - session state:", session);
-
   // Get session directly as fallback
   useEffect(() => {
     const getSession = async () => {
       try {
         const sessionData = await authClient.getSession();
         setSession(sessionData);
-        console.log("SidebarFooter - session data:", sessionData);
       } catch (error) {
         console.error("Error getting session:", error);
       } finally {
@@ -98,55 +92,51 @@ const SidebarFooterSection = () => {
   return (
     <div className="flex items-center gap-3 w-full">
       <Link href={`/profile/${currentUser?.id}`} className="flex items-center gap-3 flex-1 min-w-0">
-        <Avatar className="h-8 w-8 group-data-[collapsible=icon]:opacity-0 transition-opacity duration-500 ease-in-out">
+        <Avatar className="h-8 w-8">
           {imageSrc && !imageError ? (
-            <div className="relative h-full w-full">
-              <Image
-                src={imageSrc}
-                alt={currentUser?.name || "User"}
-                fill
-                className="object-cover"
-                onError={handleImageError}
-                unoptimized={imageSrc.includes('googleusercontent.com')}
-                referrerPolicy="no-referrer"
-                priority
-              />
-            </div>
+            <Image
+              src={imageSrc}
+              alt={currentUser?.name || currentUser?.email || "User"}
+              width={32}
+              height={32}
+              className="rounded-full"
+              onError={handleImageError}
+            />
           ) : (
-            <AvatarFallback className="bg-zinc-200 dark:bg-zinc-800">
-              <User className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+            <AvatarFallback className="text-xs">
+              {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : currentUser?.email?.charAt(0).toUpperCase() || "U"}
             </AvatarFallback>
           )}
         </Avatar>
-        <div className="group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:hidden transition-opacity duration-500 ease-in-out min-w-0">
-          <p className="text-sm font-medium whitespace-nowrap truncate text-zinc-700 dark:text-zinc-300">
-            {currentUser?.name || "User"}
+        <div className="flex flex-col min-w-0 flex-1">
+          <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300 truncate">
+            {currentUser?.name || currentUser?.email || "User"}
           </p>
-          <p className="text-xs whitespace-nowrap truncate text-zinc-500 dark:text-zinc-400">
-            {currentUser?.email?.split("@")[0] || "Free"}
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
+            {currentUser?.email}
           </p>
         </div>
       </Link>
       <div className="flex items-center gap-1">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Link href={GITHUB_URL} target="_blank" rel="noopener noreferrer">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              >
+                <Github className="h-4 w-4" />
+              </Button>
+            </Link>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>View on GitHub</p>
+          </TooltipContent>
+        </Tooltip>
         <div className="group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:hidden transition-opacity duration-500 ease-in-out">
           <ThemeToggle />
         </div>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <a
-              href={GITHUB_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-1 rounded transition-colors hover:bg-zinc-200 dark:hover:bg-zinc-800"
-              aria-label="View source code"
-            >
-              <Github className="h-5 w-5 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-white" />
-            </a>
-          </TooltipTrigger>
-          <TooltipContent side="top">
-            <span>Source code</span>
-          </TooltipContent>
-        </Tooltip>
       </div>
     </div>
   );

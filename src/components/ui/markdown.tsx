@@ -380,12 +380,12 @@ const components: Partial<Components> = {
     </ul>
   ),
   strong: ({ children, ...props }) => (
-    <strong className="font-semibold text-white" {...props}>
+    <strong className="font-semibold text-gray-900 dark:text-white" {...props}>
       {children}
     </strong>
   ),
   em: ({ children, ...props }) => (
-    <em className="italic text-neutral-200" {...props}>
+    <em className="italic text-gray-700 dark:text-neutral-200" {...props}>
       {children}
     </em>
   ),
