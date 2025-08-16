@@ -65,8 +65,8 @@ export const ChatInput = React.memo(({
     }
   }, [input, onSubmit]);
 
-  const isSubmitDisabled = !input.trim() || isLoading || (!user && limitReached);
-  const isInputDisabled = isLoading || (!user && limitReached);
+  const isSubmitDisabled = !input.trim() || isLoading;
+  const isInputDisabled = isLoading;
 
   return (
     <div className="border-t border-border bg-background input-area">
@@ -84,7 +84,7 @@ export const ChatInput = React.memo(({
           {/* File Upload */}
           <AttachmentButton
             onFileSelect={onFileSelect}
-            disabled={!user && limitReached}
+            disabled={isLoading}
             uploading={uploading}
           />
           

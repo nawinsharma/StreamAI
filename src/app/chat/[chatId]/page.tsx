@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { AISkeletonLoading } from "@/components/message";
 import { useScrollToBottom } from "@/components/use-scroll-to-bottom";
 import { toast } from "sonner";
@@ -123,24 +123,6 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
 
     fetchChat();
   }, [chatId, user]);
-
-  // Handle initial message from URL parameters
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const initialMessage = urlParams.get('message');
-    
-    console.log("Initial message from URL:", initialMessage);
-    console.log("User state:", user);
-    console.log("Loading state:", loading);
-    console.log("Elements length:", elements.length);
-    
-    if (initialMessage && user && !loading && elements.length === 0) {
-      console.log("Processing initial message:", initialMessage);
-      onSubmit(initialMessage);
-      // Clean up the URL
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-  }, [user, loading, elements.length]);
 
   const fetchChat = async () => {
     try {
@@ -284,7 +266,7 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
     router.push("/");
   };
 
-  async function onSubmit(prompt: string) {
+  const onSubmit = useCallback(async (prompt: string) => {
     console.log("onSubmit called with prompt:", prompt);
     console.log("User:", user);
     console.log("Is loading:", isLoading);
@@ -463,7 +445,25 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [chatId, elements, pendingAttachment, scrollToBottom, isLoading, user]);
+
+  // Handle initial message from URL parameters - moved after onSubmit definition
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialMessage = urlParams.get('message');
+    
+    console.log("Initial message from URL:", initialMessage);
+    console.log("User state:", user);
+    console.log("Loading state:", loading);
+    console.log("Elements length:", elements.length);
+    
+    if (initialMessage && user && !loading && elements.length === 0) {
+      console.log("Processing initial message:", initialMessage);
+      onSubmit(initialMessage);
+      // Clean up the URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [user, loading, elements.length, onSubmit]);
 
   function renderMessageContent(content: string) {
     // Handle UI markers persisted in DB (e.g., UI_WEATHER:{...})

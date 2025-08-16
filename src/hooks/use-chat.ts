@@ -58,7 +58,7 @@ export const useChat = (): ChatState & ChatActions => {
     if (error instanceof AxiosError) {
       if (error.response?.status === 401) {
         errorMessage = "Please sign in to continue.";
-        router.push("/auth/signin");
+        router.push("/sign-in");
       } else if (error.response?.status === 413) {
         errorMessage = ERROR_MESSAGES.FILE_TOO_LARGE;
       } else if (error.response?.status === 429) {
@@ -113,8 +113,20 @@ export const useChat = (): ChatState & ChatActions => {
   const handleFileSelect = useCallback(async (file: File) => {
     try {
       if (!user) {
-        toast.error("Please sign in to upload files.");
-        router.push("/auth/signin");
+        // Save file info to localStorage for unauthenticated users
+        const savedFiles = JSON.parse(localStorage.getItem('pendingFiles') || '[]');
+        const fileInfo = {
+          id: Date.now().toString(),
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          timestamp: new Date().toISOString()
+        };
+        savedFiles.push(fileInfo);
+        localStorage.setItem('pendingFiles', JSON.stringify(savedFiles));
+        
+        // Redirect to sign-in page
+        router.push("/sign-in");
         return;
       }
 
@@ -172,8 +184,8 @@ export const useChat = (): ChatState & ChatActions => {
   const handleNewChat = useCallback(async () => {
     try {
       if (!user) {
-        toast.error("Please sign in to create a new chat.");
-        router.push("/auth/signin");
+        // Redirect to sign-in page for unauthenticated users
+        router.push("/sign-in");
         return;
       }
       
@@ -190,8 +202,19 @@ export const useChat = (): ChatState & ChatActions => {
     try {
       // Check authentication first
       if (!user) {
-        toast.error("Please sign in to send messages.");
-        router.push("/auth/signin");
+        // Save message to localStorage for unauthenticated users
+        const savedMessages = JSON.parse(localStorage.getItem('pendingMessages') || '[]');
+        const newMessage = {
+          id: Date.now().toString(),
+          content: prompt.trim(),
+          timestamp: new Date().toISOString(),
+          attachment: state.pendingAttachment
+        };
+        savedMessages.push(newMessage);
+        localStorage.setItem('pendingMessages', JSON.stringify(savedMessages));
+        
+        // Redirect to sign-in page
+        router.push("/sign-in");
         return;
       }
 
@@ -261,7 +284,7 @@ export const useChat = (): ChatState & ChatActions => {
       if (!response.ok) {
         if (response.status === 401) {
           toast.error("Please sign in to continue.");
-          router.push("/auth/signin");
+          router.push("/sign-in");
           return;
         }
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -339,4 +362,4 @@ export const useChat = (): ChatState & ChatActions => {
     clearError,
     user,
   };
-}; 
+};

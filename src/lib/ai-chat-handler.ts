@@ -1,6 +1,6 @@
 import { streamText, convertToModelMessages } from "ai";
 import { google } from "@ai-sdk/google";
-import { getWeather } from "./ai-tools/weather";
+import { getEnhancedWeather } from "./ai-tools/enhanced-weather";
 import prisma from "./prisma";
 
 export interface CoreMessage {
@@ -226,19 +226,27 @@ export async function handleAIChatRequest(
       messages: modelMessages,
       tools: {
         weather: {
-          description: 'Get current weather information for a specific city',
+          description: 'Get current weather information for a city mentioned in the user\'s message',
           parameters: {
             type: 'object',
             properties: {
-              city: {
+              userInput: {
                 type: 'string',
-                description: 'The city name to get weather for'
+                description: 'The user\'s original message or query about weather'
               }
             },
-            required: ['city']
+            required: ['userInput']
           },
-          execute: async ({ city }: { city: string }) => {
-            return await getWeather(city);
+          execute: async ({ userInput }: { userInput: string }) => {
+            const result = await getEnhancedWeather(userInput);
+            if (result.success) {
+              return {
+                ...result.data,
+                parsedCity: result.parsedCity
+              };
+            } else {
+              throw new Error(result.error || "Failed to get weather information");
+            }
           }
         }
       },

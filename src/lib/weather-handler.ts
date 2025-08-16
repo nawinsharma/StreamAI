@@ -1,4 +1,4 @@
-import { getWeather } from "./ai-tools/weather";
+import { getEnhancedWeather, getWeatherForCity } from "./ai-tools/enhanced-weather";
 import prisma from "./prisma";
 
 export interface WeatherResponse {
@@ -8,35 +8,69 @@ export interface WeatherResponse {
 }
 
 /**
- * Extracts city name from user input text
+ * Handles weather requests using AI-powered city parsing
+ * This replaces the old regex-based extractCityFromText function
  */
-export function extractCityFromText(text: string): string | null {
-  const patterns = [
-    /(?:weather|temperature|forecast)\s*(?:in|of)?\s*([a-zA-Z][a-zA-Z\s]+)$/i,
-    /in\s+([a-zA-Z][a-zA-Z\s]+)\s*(?:weather|temperature)/i,
-    /weather\s+(?:in|for)\s+([a-zA-Z][a-zA-Z\s]+)/i,
-  ];
-
-  for (const pattern of patterns) {
-    const match = text.match(pattern);
-    if (match && match[1]) {
-      return match[1].trim();
+export async function handleWeatherRequest(
+  userInput: string,
+  chatId?: string,
+  userId?: string,
+  userMessage?: string
+): Promise<WeatherResponse> {
+  try {
+    const weatherResult = await getEnhancedWeather(userInput);
+    
+    if (!weatherResult.success) {
+      return {
+        success: false,
+        error: weatherResult.error || "Failed to get weather information"
+      };
     }
+
+    const weatherData = weatherResult.data;
+    const parsedCity = weatherResult.parsedCity;
+    const data = JSON.stringify(weatherData);
+    const formatted = `UI_WEATHER:${data}\n\nA quick look at the current weather for ${parsedCity}:`;
+    
+    // Save to database if chat context is available
+    if (chatId && userId && userMessage) {
+      await saveWeatherToDatabase(chatId, userMessage, formatted);
+    }
+
+    return {
+      success: true,
+      data: formatted,
+    };
+  } catch (error) {
+    console.error("Weather request failed:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Weather service unavailable",
+    };
   }
-  return null;
 }
 
 /**
- * Handles weather requests and returns formatted response
+ * Handles weather requests when city name is already known
+ * This is a more direct approach when city is validated
  */
-export async function handleWeatherRequest(
+export async function handleWeatherRequestForCity(
   city: string,
   chatId?: string,
   userId?: string,
   userMessage?: string
 ): Promise<WeatherResponse> {
   try {
-    const weatherData = await getWeather(city);
+    const weatherResult = await getWeatherForCity(city);
+    
+    if (!weatherResult.success) {
+      return {
+        success: false,
+        error: weatherResult.error || "Failed to get weather information"
+      };
+    }
+
+    const weatherData = weatherResult.data;
     const data = JSON.stringify(weatherData);
     const formatted = `UI_WEATHER:${data}\n\nA quick look at the current weather for ${city}:`;
     

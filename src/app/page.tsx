@@ -8,60 +8,12 @@ import { ChatInput, WelcomeMessage } from "@/components/chat";
 import { useChat } from "@/hooks/use-chat";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { WelcomeSkeleton } from "@/components/loading-skeleton";
-import { Button } from "@/components/ui/button";
-import { LogIn } from "lucide-react";
 
 // Lazy load components for better performance
 const VirtualMessageList = React.lazy(() => 
   import("@/components/chat/virtual-message-list").then(module => ({ 
     default: module.VirtualMessageList 
   }))
-);
-
-const SignInPrompt = () => (
-  <div className="flex-1 flex items-center justify-center px-6">
-    <div className="text-center max-w-md mx-auto space-y-6">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Welcome to AI Chat</h1>
-        <p className="text-muted-foreground">
-          Sign in to start chatting with our AI assistant. Get personalized responses, 
-          upload files, and maintain conversation context across sessions.
-        </p>
-      </div>
-      
-      <div className="space-y-4">
-        <Button 
-          onClick={() => window.location.href = "/auth/signin"} 
-          size="lg" 
-          className="w-full"
-        >
-          <LogIn className="mr-2 h-4 w-4" />
-          Sign In to Continue
-        </Button>
-        
-        <p className="text-sm text-muted-foreground">
-          Don&apos;t have an account?{" "}
-          <a 
-            href="/auth/signup" 
-            className="text-primary hover:underline font-medium"
-          >
-            Sign up
-          </a>
-        </p>
-      </div>
-      
-      <div className="pt-6 border-t">
-        <h3 className="font-semibold mb-3">Features you&apos;ll get:</h3>
-        <ul className="text-sm text-muted-foreground space-y-2 text-left">
-          <li>• Full conversation context and history</li>
-          <li>• File upload and analysis</li>
-          <li>• Weather information and tools</li>
-          <li>• Personalized chat experience</li>
-          <li>• Secure and private conversations</li>
-        </ul>
-      </div>
-    </div>
-  </div>
 );
 
 const ChatContent = React.memo(() => {
@@ -90,18 +42,6 @@ const ChatContent = React.memo(() => {
       }, 100);
     }
   }, [setInput, onSubmit]);
-
-  // Show sign-in prompt for unauthenticated users
-  if (!user) {
-    return (
-      <div className="h-screen bg-background flex flex-col">
-        <ErrorBoundary>
-          <Header onNewChat={handleNewChat} />
-        </ErrorBoundary>
-        <SignInPrompt />
-      </div>
-    );
-  }
 
   // Show error state if there's an error
   if (error) {

@@ -2,7 +2,6 @@ import { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { 
-  extractCityFromText, 
   handleWeatherRequest, 
   createWeatherStream 
 } from "@/lib/weather-handler";
@@ -69,27 +68,26 @@ export async function POST(req: NextRequest) {
     // Check if this is a weather request (only if no file attachment)
     if (!attachmentMeta) {
       const userText = extractTextFromMessage(lastUser);
-      const maybeCity = extractCityFromText(userText);
-      if (maybeCity) {
-        const weatherResponse = await handleWeatherRequest(
-          maybeCity,
-          chatId,
-          userId,
-          userText
-        );
+      
+      // Use the new enhanced weather handler that uses AI city parsing
+      const weatherResponse = await handleWeatherRequest(
+        userText,
+        chatId,
+        userId,
+        userText
+      );
 
-        if (weatherResponse.success && weatherResponse.data) {
-          const stream = createWeatherStream(weatherResponse.data);
-          return new Response(stream, {
-            headers: {
-              "Content-Type": "text/plain; charset=utf-8",
-              "Cache-Control": "no-cache",
-            },
-          });
-        } else {
-          // If weather fails, fall through to AI chat
-          console.log("Weather request failed, falling back to AI chat");
-        }
+      if (weatherResponse.success && weatherResponse.data) {
+        const stream = createWeatherStream(weatherResponse.data);
+        return new Response(stream, {
+          headers: {
+            "Content-Type": "text/plain; charset=utf-8",
+            "Cache-Control": "no-cache",
+          },
+        });
+      } else {
+        // If weather fails, fall through to AI chat
+        console.log("Weather request failed, falling back to AI chat");
       }
     }
 
@@ -111,28 +109,9 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     console.error("Chat API error:", error);
-    
-    // Check for quota errors
-    let statusCode = 500;
-    let errorMessage = "Internal server error";
-    
-    if (error instanceof Error) {
-      const errorStr = error.message.toLowerCase();
-      if (errorStr.includes('quota') || errorStr.includes('resource_exhausted')) {
-        statusCode = 429; // Too Many Requests
-        if (errorStr.includes('per day') || errorStr.includes('daily')) {
-          errorMessage = "Daily AI usage limit reached. Please try again tomorrow.";
-        } else if (errorStr.includes('per minute') || errorStr.includes('rate')) {
-          errorMessage = "Too many requests. Please wait a moment and try again.";
-        } else {
-          errorMessage = "AI service quota exceeded. Please try again later.";
-        }
-      }
-    }
-    
     return new Response(
-      errorMessage, 
-      { status: statusCode }
+      "Internal server error. Please try again.",
+      { status: 500 }
     );
   }
 } 
