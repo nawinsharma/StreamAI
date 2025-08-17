@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Plus, Brain } from "lucide-react";
 
 interface HeaderProps {
   onNewChat: () => void;
@@ -39,7 +39,11 @@ export function Header({ onNewChat }: HeaderProps) {
   };
 
   const handleLogin = () => {
-    router.push('/auth/signin');
+    router.push('/sign-in');
+  };
+
+  const handleMemoriesClick = () => {
+    router.push('/memories');
   };
 
   return (
@@ -98,6 +102,11 @@ export function Header({ onNewChat }: HeaderProps) {
                     </p>
                   </div>
                 </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleMemoriesClick}>
+                  <Brain className="mr-2 h-4 w-4" />
+                  Memories
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut}>
                   Sign out
