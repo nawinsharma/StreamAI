@@ -17,6 +17,36 @@ export default function UserProviderWrapper({ children, initialUser }: UserProvi
       setUser(initialUser)
    }, [initialUser])
 
+   // Handle first-time login when user is authenticated
+   useEffect(() => {
+      if (user?.id) {
+         // Process first-time login in the background
+         const processFirstTimeLogin = async () => {
+            try {
+               const response = await fetch("/api/user/first-login", {
+                  method: "POST",
+                  headers: {
+                     "Content-Type": "application/json",
+                  },
+               });
+
+               if (response.ok) {
+                  const data = await response.json();
+                  console.log("First-time login processed:", data.message);
+               } else {
+                  console.error("Failed to process first-time login");
+               }
+            } catch (error) {
+               console.error("Error processing first-time login:", error);
+            }
+         };
+
+         // Add a small delay to ensure the user context is fully loaded
+         const timer = setTimeout(processFirstTimeLogin, 1000);
+         return () => clearTimeout(timer);
+      }
+   }, [user?.id])
+
    return (
       <UserProvider user={user}>
          {children}
