@@ -25,7 +25,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { authClient } from "@/lib/auth-client";
-import { getChatsForUser, deleteChat } from "@/actions/chatActions";
+import { getChatsForUser, deleteChat } from "@/app/actions/chatActions";
 import { useTheme } from "next-themes";
 
 interface ChatHistoryProps {

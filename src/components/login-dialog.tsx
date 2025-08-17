@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { signInWithGoogle } from "@/actions/authAction"
+import { signInWithGoogle } from "@/app/actions/authAction"
 import { Button } from "@/components/ui/button"
 import {
    Card,

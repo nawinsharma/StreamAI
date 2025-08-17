@@ -86,7 +86,7 @@ export const safeValidate = <T>(schema: z.ZodSchema<T>, data: unknown): { succes
     } else {
       return { 
         success: false, 
-        error: result.error.errors[0]?.message || 'Validation failed' 
+        error: result.error.issues[0]?.message || 'Validation failed' 
       };
     }
   } catch (error) {

@@ -3,6 +3,7 @@ import { google } from "@ai-sdk/google";
 import { getEnhancedWeather } from "./ai-tools/enhanced-weather";
 import prisma from "./prisma";
 import { searchMemoriesAction, addMemoryAction } from "@/app/actions/memories";
+import { z } from "zod";
 
 export interface ChatRequest {
   messages: CoreMessage[];
@@ -261,16 +262,9 @@ export async function handleAIChatRequest(
       tools: {
         weather: {
           description: 'Get current weather information for a city mentioned in the user\'s message',
-          parameters: {
-            type: 'object',
-            properties: {
-              userInput: {
-                type: 'string',
-                description: 'The user\'s original message or query about weather'
-              }
-            },
-            required: ['userInput']
-          },
+          inputSchema: z.object({
+            userInput: z.string().describe('The user\'s original message or query about weather')
+          }),
           execute: async ({ userInput }: { userInput: string }) => {
             const result = await getEnhancedWeather(userInput);
             if (result.success) {
