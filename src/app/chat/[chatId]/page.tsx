@@ -108,9 +108,9 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
   const [isLoading, setIsLoading] = useState(false);
   const [chat, setChat] = useState<Chat | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isNewChat, setIsNewChat] = useState(false);
   const user = useUser();
   const router = useRouter();
-  // Removed: const { sendMessage } = useActions();
   const [messagesContainerRef, messagesEndRef, scrollToBottom] = useScrollToBottom<HTMLDivElement>();
   const [pendingAttachment, setPendingAttachment] = useState<AttachmentMeta | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -121,7 +121,26 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
       return;
     }
 
-    fetchChat();
+    // Check if this is a new chat with initial message
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialMessage = urlParams.get('message');
+    
+    if (initialMessage) {
+      // This is a new chat with initial message - skip loading existing chat
+      setIsNewChat(true);
+      setLoading(false);
+      setChat({ id: chatId, title: initialMessage.substring(0, 50) + (initialMessage.length > 50 ? "..." : ""), messages: [], createdAt: new Date(), updatedAt: new Date() });
+      
+      // Process the initial message immediately
+      setTimeout(() => {
+        onSubmit(initialMessage);
+        // Clean up the URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }, 50);
+    } else {
+      // This is an existing chat - fetch the data
+      fetchChat();
+    }
   }, [chatId, user]);
 
   const fetchChat = async () => {
@@ -320,8 +339,8 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
     // Update elements immediately to show user message
     setElements(newElements);
     
-    // Trigger scroll to bottom after adding user message
-    setTimeout(scrollToBottom, 50);
+    // Trigger scroll to bottom immediately after adding user message
+    setTimeout(scrollToBottom, 10);
 
     try {
       // Start streaming API call
@@ -389,7 +408,7 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
 
       newElements.push(renderAI(aiText, weatherPayload));
       setElements([...newElements]);
-      setTimeout(scrollToBottom, 50);
+      setTimeout(scrollToBottom, 10);
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
@@ -416,7 +435,7 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
             updated[updated.length - 1] = renderAI(aiText, weatherPayload);
             return updated;
           });
-          setTimeout(scrollToBottom, 30);
+          setTimeout(scrollToBottom, 5);
         }
       }
       // Flush any remainder
@@ -427,13 +446,13 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
           updated[updated.length - 1] = renderAI(aiText, weatherPayload);
           return updated;
         });
-        setTimeout(scrollToBottom, 50);
+        setTimeout(scrollToBottom, 10);
       }
 
       // Finalize
       setInput("");
       setPendingAttachment(null);
-      setTimeout(scrollToBottom, 50);
+      setTimeout(scrollToBottom, 10);
     } catch (error) {
       console.error("Error sending message:", error);
       
@@ -446,24 +465,6 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
       setIsLoading(false);
     }
   }, [chatId, elements, pendingAttachment, scrollToBottom, isLoading, user]);
-
-  // Handle initial message from URL parameters - moved after onSubmit definition
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const initialMessage = urlParams.get('message');
-    
-    console.log("Initial message from URL:", initialMessage);
-    console.log("User state:", user);
-    console.log("Loading state:", loading);
-    console.log("Elements length:", elements.length);
-    
-    if (initialMessage && user && !loading && elements.length === 0) {
-      console.log("Processing initial message:", initialMessage);
-      onSubmit(initialMessage);
-      // Clean up the URL
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-  }, [user, loading, elements.length, onSubmit]);
 
   function renderMessageContent(content: string) {
     // Handle UI markers persisted in DB (e.g., UI_WEATHER:{...})
@@ -511,7 +512,7 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
     return <Markdown>{content}</Markdown>;
   }
 
-  if (loading) {
+  if (loading && !isNewChat) {
     return (
       <div className="h-screen bg-background flex flex-col">
         <Header onNewChat={handleNewChat} />

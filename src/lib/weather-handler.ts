@@ -136,6 +136,7 @@ export function createWeatherStream(content: string): ReadableStream<Uint8Array>
   return new ReadableStream<Uint8Array>({
     start(controller) {
       const encoder = new TextEncoder();
+      // Stream the content immediately without any delays
       controller.enqueue(encoder.encode(content));
       controller.close();
     },

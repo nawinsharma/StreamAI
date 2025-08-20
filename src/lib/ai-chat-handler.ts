@@ -284,6 +284,7 @@ export async function handleAIChatRequest(
       async start(controller) {
         const encoder = new TextEncoder();
         try {
+          // Start streaming immediately without any delays
           for await (const delta of result.textStream) {
             assistantCollected += delta;
             controller.enqueue(encoder.encode(delta));

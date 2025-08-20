@@ -39,7 +39,7 @@ const ChatContent = React.memo(() => {
     if (shouldAutoSubmit) {
       setTimeout(() => {
         onSubmit(question);
-      }, 100);
+      }, 50);
     }
   }, [setInput, onSubmit]);
 

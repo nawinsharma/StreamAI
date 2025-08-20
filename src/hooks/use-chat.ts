@@ -241,87 +241,14 @@ export const useChat = (): ChatState & ChatActions => {
         chatId = response.data.id;
         setState(prev => ({ ...prev, currentChatId: chatId as string | null }));
         
-        // Redirect to chat page for better UX
+        // Immediately redirect to chat page with message parameter
+        // This eliminates the double loading and makes the flow seamless
         router.push(`/chat/${chatId}?message=${encodeURIComponent(prompt)}`);
-        return; // Exit early, chat page will handle the message
+        return; // Exit early, chat page will handle the message immediately
       }
 
-      // Add user message to UI immediately
-      const userMessageElement = createMessageElement(prompt.trim(), true, state.pendingAttachment);
-      setState(prev => ({
-        ...prev,
-        elements: [...prev.elements, userMessageElement],
-        input: "",
-        pendingAttachment: null,
-      }));
-
-      // Send message with chatId to maintain context
-      const response = await fetch("/api/chat", {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          prompt: prompt.trim(),
-          file: undefined,
-          chatId: chatId, // Always pass chatId for context maintenance
-          attachmentText: state.pendingAttachment?.type !== 'image' 
-            ? state.pendingAttachment?.extractedTextPreview || undefined 
-            : undefined,
-          attachmentMeta: state.pendingAttachment ? {
-            name: state.pendingAttachment.name,
-            mimeType: state.pendingAttachment.mimeType || 'application/octet-stream',
-            url: state.pendingAttachment.url,
-            type: state.pendingAttachment.type,
-            width: null,
-            height: null,
-            size: state.pendingAttachment.size,
-            extractedTextPreview: state.pendingAttachment.extractedTextPreview,
-          } : undefined,
-        }),
-      });
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          toast.error("Please sign in to continue.");
-          router.push("/sign-in");
-          return;
-        }
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      // Handle stream response
-      const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error('No response body');
-      }
-
-      let aiResponse = '';
-      const decoder = new TextDecoder();
-
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          
-          const chunk = decoder.decode(value, { stream: true });
-          aiResponse += chunk;
-        }
-      } finally {
-        reader.releaseLock();
-      }
-
-      // Handle AI response
-      if (aiResponse.trim()) {
-        const aiMessageElement = createMessageElement(aiResponse, false);
-        setState(prev => ({
-          ...prev,
-          elements: [...prev.elements, aiMessageElement],
-          isLoading: false,
-        }));
-      } else {
-        setState(prev => ({ ...prev, isLoading: false }));
-      }
+      // If we already have a chatId, redirect to that chat with the message
+      router.push(`/chat/${chatId}?message=${encodeURIComponent(prompt)}`);
     } catch (error) {
       handleError(error, 'message submission');
       setState(prev => ({ ...prev, isLoading: false }));
@@ -332,8 +259,7 @@ export const useChat = (): ChatState & ChatActions => {
     state.pendingAttachment, 
     user, 
     router, 
-    handleError,
-    createMessageElement
+    handleError
   ]);
 
   // State setters
