@@ -28,6 +28,7 @@ import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
+import { UserIcon } from "lucide-react"
 
 
 export default function SignUpForm() {
@@ -83,8 +84,39 @@ export default function SignUpForm() {
          } else {
             router.push("/");
          }
-      } catch (error) {
+      } catch {
          toast.error("Failed to sign in with Google");
+      }
+   }
+
+   const handleGuestSignIn = async () => {
+      try {
+         await authClient.signIn.email({
+            email: "Guest@gmail.com",
+            password: "Guest@gmail.com",
+         }, {
+            onRequest: () => {
+               toast("Signing in as guest...")
+            },
+            onSuccess: async () => {
+               toast.success("Successfully signed in as guest!")
+               
+               console.log('Guest sign-in successful, processing pending data...');
+               // Process pending data after successful guest sign-in
+               const redirectUrl = await processPendingData();
+               console.log('Redirect URL:', redirectUrl);
+               if (redirectUrl) {
+                  router.push(redirectUrl);
+               } else {
+                  router.push("/");
+               }
+            },
+            onError: (ctx) => {
+               toast.error(ctx.error.message);
+            },
+         });
+      } catch {
+         toast.error("Failed to sign in as guest");
       }
    }
 
@@ -105,6 +137,10 @@ export default function SignUpForm() {
                   />
                </svg>
                Sign up with Google
+            </Button>
+            <Button variant="secondary" className="w-full" onClick={handleGuestSignIn}>
+               <UserIcon className="mr-2 h-4 w-4" />
+               Continue as Guest
             </Button>
             <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border">
                <span className="relative z-10 bg-background px-2 text-muted-foreground">

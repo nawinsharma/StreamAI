@@ -22,29 +22,20 @@ import {
 import { Input } from "@/components/ui/input"
 import { authClient } from "@/lib/auth-client"
 import { signInFormSchema } from "@/lib/auth-schema"
-import { useUser } from "@/context/UserContext"
 import { processPendingData } from "@/lib/pending-messages"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
-import {
-   DropdownMenu,
-   DropdownMenuContent,
-   DropdownMenuItem,
-   DropdownMenuSeparator,
-   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { UserIcon } from "lucide-react"
 
 interface LoginDialogProps {
    isOpen: boolean
    onClose: () => void
 }
 
-export default function LoginDialog({ isOpen, onClose }: LoginDialogProps) {
-   const user = useUser()
+export default function LoginDialog({ isOpen }: LoginDialogProps) {
    const router = useRouter()
    const [isLoading, setIsLoading] = useState(false)
 
@@ -115,13 +106,38 @@ export default function LoginDialog({ isOpen, onClose }: LoginDialogProps) {
       }
    }
 
-   const handleSignOut = async () => {
+   const handleGuestSignIn = async () => {
+      setIsLoading(true)
       try {
-         await authClient.signOut()
-         toast.success("Successfully signed out!")
-         onClose()
+         await authClient.signIn.email({
+            email: "Guest@gmail.com",
+            password: "Guest@gmail.com",
+         }, {
+            onRequest: () => {
+               toast("Signing in as guest...")
+            },
+            onSuccess: async () => {
+               form.reset()
+               toast.success("Successfully signed in as guest!")
+               
+               console.log('Login dialog guest sign-in successful, processing pending data...');
+               // Process pending data after successful guest sign-in
+               const redirectUrl = await processPendingData();
+               console.log('Redirect URL:', redirectUrl);
+               if (redirectUrl) {
+                  router.push(redirectUrl);
+               } else {
+                  window.location.reload(); // Force reload to update user context
+               }
+            },
+            onError: (ctx) => {
+               toast.error(ctx.error.message)
+            },
+         })
       } catch {
-         toast.error("Failed to sign out")
+         toast.error("Failed to sign in as guest")
+      } finally {
+         setIsLoading(false)
       }
    }
 
@@ -145,6 +161,10 @@ export default function LoginDialog({ isOpen, onClose }: LoginDialogProps) {
                      />
                   </svg>
                   Login with Google
+               </Button>
+               <Button variant="secondary" className="w-full" onClick={handleGuestSignIn} disabled={isLoading}>
+                  <UserIcon className="mr-2 h-4 w-4" />
+                  Continue as Guest
                </Button>
                <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border">
                   <span className="relative z-10 bg-background px-2 text-muted-foreground">
@@ -196,4 +216,4 @@ export default function LoginDialog({ isOpen, onClose }: LoginDialogProps) {
          </Card>
       </div>
    )
-} 
+}
