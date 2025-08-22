@@ -1,9 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
   output   = "../src/generated/prisma"
@@ -25,6 +22,8 @@ model User {
   sessions      Session[]
   accounts      Account[]
   chats         Chat[]
+  ragCollections RagCollection[]
+  ragChats      RagChat[]
 
   @@map("user")
 }
@@ -95,4 +94,63 @@ model Message {
   createdAt DateTime @default(now())
 
   @@map("message")
+}
+
+// RAG-specific models
+model RagCollection {
+  id            String     @id @default(uuid())
+  name          String
+  collectionName String   @unique // Qdrant collection name
+  summary       String?
+  type          String     // "pdf", "website", "text", "youtube"
+  sourceUrl     String?    // Original URL for websites/youtube
+  fileName      String?    // Original filename for uploads
+  fileSize      Int?       // File size in bytes
+  userId        String
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documents     RagDocument[]
+  ragChats      RagChat[]
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@map("rag_collection")
+}
+
+model RagDocument {
+  id            String        @id @default(uuid())
+  content       String        // Document content
+  metadata      Json?         // Additional metadata
+  pageNumber    Int?          // For PDFs
+  chunkIndex    Int?          // Chunk number within document
+  collectionId  String
+  collection    RagCollection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  createdAt     DateTime      @default(now())
+
+  @@map("rag_document")
+}
+
+model RagChat {
+  id           String        @id @default(uuid())
+  title        String
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  collectionId String
+  collection   RagCollection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  messages     RagMessage[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@map("rag_chat")
+}
+
+model RagMessage {
+  id        String   @id @default(uuid())
+  content   String
+  role      String   // "user" or "assistant"
+  sources   Json?    // Retrieved source documents
+  chatId    String
+  chat      RagChat  @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@map("rag_message")
 }
