@@ -12,21 +12,25 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
-import { Plus, Brain } from "lucide-react";
+import { Brain } from "lucide-react";
+import { useState } from "react";
 
-interface HeaderProps {
-  onNewChat: () => void;
-}
-
-export function Header({ onNewChat }: HeaderProps) {
+export function Header() {
   const router = useRouter();
   const user = useUser();
-
-  const handleLogoClick = () => {
-    router.push('/');
-  };
+  const [showSignOutDialog, setShowSignOutDialog] = useState(false);
 
   const handleSignOut = async () => {
     try {
@@ -38,6 +42,15 @@ export function Header({ onNewChat }: HeaderProps) {
     }
   };
 
+  const handleSignOutClick = () => {
+    setShowSignOutDialog(true);
+  };
+
+  const confirmSignOut = () => {
+    setShowSignOutDialog(false);
+    handleSignOut();
+  };
+
   const handleLogin = () => {
     router.push('/sign-in');
   };
@@ -47,79 +60,104 @@ export function Header({ onNewChat }: HeaderProps) {
   };
 
   return (
-    <header className="relative z-40 bg-background/80 backdrop-blur-xl border-b border-border/50 shadow-lg shadow-black/5 dark:shadow-black/20">
-      <div className="max-w-7xl mx-auto flex items-center justify-between w-full px-6 py-4 h-20">
-        <div className="flex items-center space-x-3">
-          <button 
-            onClick={handleLogoClick}
-            className="flex items-center space-x-3 hover:opacity-80 transition-opacity duration-200 cursor-pointer group"
-          >
-            <div className="flex-shrink-0">
-              <h1 className="text-xl font-semibold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent transition-all duration-200">Nawin</h1>
-            </div>
-          </button>
-        </div>
-        <div className="flex items-center space-x-3 flex-shrink-0">
-          {/* New Chat Button */}
-          <Button
-            onClick={onNewChat}
-            variant="outline"
-            size="sm"
-            className="flex items-center space-x-2"
-          >
-            <Plus className="w-4 h-4" />
-            <span>New Chat</span>
-          </Button>
+    <>
+      <header className="relative z-40 bg-background/20 backdrop-blur-md border-none shadow-none">
+        <div className="max-w-7xl mx-auto flex items-center justify-between w-full px-4 sm:px-6 py-4 h-16 sm:h-20">
           
-          <div className="w-px h-6 bg-border/50"></div>
-          
-          <div className="flex items-center space-x-2 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/20">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-lg shadow-green-500/50"></div>
-            <span className="text-sm text-green-600 dark:text-green-400 font-medium">Online</span>
+          {/* Left side - Logo/Brand (placeholder for future content) */}
+          <div className="flex items-center flex-shrink-0">
+            {/* This space is reserved for logo or brand */}
           </div>
-          
-          <div className="w-px h-6 bg-border/50"></div>
-          <ThemeToggle />
-          {/* User Profile or Login Button */}
-          {user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={user.image || undefined} alt={user.name || user.email} />
-                    <AvatarFallback>
-                      {user.name ? user.name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <div className="flex items-center justify-start gap-2 p-2">
-                  <div className="flex flex-col space-y-1 leading-none">
-                    {user.name && <p className="font-medium">{user.name}</p>}
-                    <p className="w-[200px] truncate text-sm text-muted-foreground">
-                      {user.email}
-                    </p>
+
+          {/* Right side - Controls */}
+          <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
+            <ThemeToggle />
+            <div className="w-px h-4 sm:h-6 bg-border/30"></div>
+            
+            {/* User Profile or Login Button */}
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-8 w-8 sm:h-10 sm:w-10 rounded-full">
+                    <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
+                      <AvatarImage 
+                        src={user.image || undefined} 
+                        alt={user.name || user.email || "User"}
+                      />
+                      <AvatarFallback className="text-sm sm:text-base font-medium">
+                        {user.name?.charAt(0)?.toUpperCase() || user.email?.charAt(0)?.toUpperCase() || "U"}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent 
+                  className="w-56 dark:border-gray-600" 
+                  align="end" 
+                  forceMount
+                >
+                  <div className="flex items-center justify-start gap-2 p-2">
+                    <div className="flex flex-col space-y-1 leading-none">
+                      {user.name && (
+                        <p className="font-medium text-sm">{user.name}</p>
+                      )}
+                      {user.email && (
+                        <p className="w-48 truncate text-xs text-muted-foreground">
+                          {user.email}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleMemoriesClick}>
-                  <Brain className="mr-2 h-4 w-4" />
-                  Memories
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut}>
-                  Sign out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <Button onClick={handleLogin} variant="outline" size="sm">
-              Sign in
-            </Button>
-          )}
+                  <DropdownMenuSeparator className="dark:border-gray-600" />
+                  <DropdownMenuItem
+                    onClick={handleMemoriesClick}
+                    className="cursor-pointer text-sm dark:hover:bg-gray-700"
+                  >
+                    <Brain className="mr-2 h-4 w-4" />
+                    <span>Memories</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="dark:border-gray-600" />
+                  <DropdownMenuItem
+                    onClick={handleSignOutClick}
+                    className="cursor-pointer text-sm text-red-600 dark:text-red-400 dark:hover:bg-gray-700"
+                  >
+                    <span>Sign out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button
+                onClick={handleLogin}
+                variant="outline"
+                size="sm"
+                className="text-sm font-medium bg-background/50 backdrop-blur-sm border-border/30"
+              >
+                Sign In
+              </Button>
+            )}
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+
+      {/* Sign Out Confirmation Dialog */}
+      <AlertDialog open={showSignOutDialog} onOpenChange={setShowSignOutDialog}>
+        <AlertDialogContent className="dark:border-gray-600">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to sign out?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You will be logged out of your account and redirected to the home page.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmSignOut}
+              className="bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700"
+            >
+              Sign Out
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
-} 
+}

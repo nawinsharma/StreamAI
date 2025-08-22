@@ -69,9 +69,28 @@ function SidebarProvider({
   const isMobile = useIsMobile()
   const [openMobile, setOpenMobile] = React.useState(false)
 
+  // Use a ref to track if we've initialized from cookie
+  const [initialized, setInitialized] = React.useState(false)
+  const [_open, _setOpen] = React.useState(defaultOpen)
+
+  // Initialize from cookie on mount
+  React.useLayoutEffect(() => {
+    if (typeof window !== 'undefined') {
+      const cookies = document.cookie.split(';')
+      const sidebarCookie = cookies.find(cookie => 
+        cookie.trim().startsWith(`${SIDEBAR_COOKIE_NAME}=`)
+      )
+      if (sidebarCookie) {
+        const value = sidebarCookie.split('=')[1]
+        const cookieValue = value === 'true'
+        _setOpen(cookieValue)
+      }
+    }
+    setInitialized(true)
+  }, [])
+
   // This is the internal state of the sidebar.
   // We use openProp and setOpenProp for control from outside the component.
-  const [_open, _setOpen] = React.useState(defaultOpen)
   const open = openProp ?? _open
   const setOpen = React.useCallback(
     (value: boolean | ((value: boolean) => boolean)) => {
@@ -83,7 +102,9 @@ function SidebarProvider({
       }
 
       // This sets the cookie to keep the sidebar state.
-      document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
+      if (typeof window !== 'undefined') {
+        document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
+      }
     },
     [setOpenProp, open]
   )
@@ -125,6 +146,11 @@ function SidebarProvider({
     }),
     [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
   )
+
+  // Don't render until we've initialized from cookie to prevent flash
+  if (!initialized) {
+    return null
+  }
 
   return (
     <SidebarContext.Provider value={contextValue}>
@@ -170,7 +196,7 @@ function Sidebar({
       <div
         data-slot="sidebar"
         className={cn(
-          "bg-background text-sidebar-foreground flex h-full w-(--sidebar-width) group-data-[collapsible=icon]:w-0 transition-all duration-800 ease-in-out flex-col",
+          "bg-background text-sidebar-foreground flex h-full w-(--sidebar-width) group-data-[collapsible=icon]:w-0 transition-all duration-800 ease-in-out flex-col border-r dark:border-gray-600",
           className
         )}
         {...props}
@@ -187,7 +213,7 @@ function Sidebar({
           data-sidebar="sidebar"
           data-slot="sidebar"
           data-mobile="true"
-          className="bg-background group-data-[collapsible=icon]:bg-transparent text-sidebar-foreground w-(--sidebar-width) p-0 [&>button]:hidden"
+          className="bg-background group-data-[collapsible=icon]:bg-transparent text-sidebar-foreground w-(--sidebar-width) p-0 [&>button]:hidden border-l dark:border-gray-600"
           style={
             {
               "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
@@ -236,7 +262,7 @@ function Sidebar({
           // Adjust the padding for floating and inset variants.
           variant === "floating" || variant === "inset"
             ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
-            : "group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-r group-data-[side=right]:border-l group-data-[collapsible=icon]:border-r-0 group-data-[collapsible=icon]:border-l-0",
+            : "group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-r group-data-[side=right]:border-l group-data-[collapsible=icon]:border-r-0 group-data-[collapsible=icon]:border-l-0 dark:border-gray-600",
           className
         )}
         {...props}
