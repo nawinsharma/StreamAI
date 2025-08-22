@@ -26,7 +26,6 @@ const ChatContent = React.memo(() => {
     uploading,
     user,
     handleFileSelect,
-    handleNewChat,
     onSubmit,
     error,
     clearError,
@@ -65,7 +64,7 @@ const ChatContent = React.memo(() => {
     <div className="h-screen bg-background flex flex-col">
       {/* Header */}
       <ErrorBoundary>
-        <Header onNewChat={handleNewChat} />
+        <Header />
       </ErrorBoundary>
       
       {/* Main Content Area */}
