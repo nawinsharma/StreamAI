@@ -18,7 +18,22 @@ export const auth = betterAuth({
    },
    rateLimit: {
       window: 60, // time window in seconds
-      max: 10,
+      max: 100, // Increased from 10 to 100 to match Better Auth defaults
+      // Add custom rules for specific endpoints
+      customRules: {
+         "/get-session": {
+            window: 60,
+            max: 50, // Allow more frequent session checks
+         },
+         "/sign-in": {
+            window: 60,
+            max: 5, // Keep sign-in attempts limited
+         },
+         "/sign-up": {
+            window: 60,
+            max: 5, // Keep sign-up attempts limited
+         }
+      }
    },
    // Add session configuration for better persistence
    session: {
