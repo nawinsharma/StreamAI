@@ -1,71 +1,56 @@
 "use client";
-
-import { cn } from "@/lib/utils";
-import React, { useState, useEffect } from "react";
-import { useDebounce } from "@/hooks/use-debounce";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, X } from "lucide-react";
+import { Search, Plus, X, Brain } from "lucide-react";
 import Link from "next/link";
-import ChatHistory from "@/components/sidebar/chat-history";
+import { useState } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
+import ChatHistory from "./chat-history";
+import RagChatHistory from "./rag-chat-history";
+import { SidebarToggle } from "./sidebar-toggle";
 
 const MainSection = () => {
-  const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const debouncedSearchQuery = useDebounce(searchQuery, 500);
-  const [isSearching, setIsSearching] = useState(false);
-
-  useEffect(() => {
-    setIsSearching(searchQuery.trim() !== "");
-  }, [searchQuery]);
-
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+  const isSearching = searchQuery.length > 0;
+  
   const clearSearch = () => {
     setSearchQuery("");
   };
-
+  
   return (
     <>
-      <header className="px-4 pt-4 pb-2 flex items-center justify-between h-[40px]">
-        <h2
-          className={cn(
-            "text-lg font-normal font-silkscreen tracking-tight",
-            "group-data-[collapsible=icon]:opacity-0 transition-all duration-500 ease-in-out",
-            "text-zinc-900 dark:text-white"
-          )}
-          style={{
-            fontFamily: 'var(--font-silkscreen)',
-            textShadow: '0 0 10px rgba(0, 0, 0, 0.3)'
-          }}
-        >
-                  </h2>
-        <section className="md:flex items-center justify-center group-data-[collapsible=icon]:bg-background group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:rounded group-data-[collapsible=icon]:absolute group-data-[collapsible=icon]:left-2 hidden">
-          <SidebarTrigger className="group-data-[collapsible=icon]:ml-3 w-fit px-2" />
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setOpen(true)}
-            className="hover:bg-zinc-200 dark:hover:bg-zinc-700 w-fit px-2 hidden group-data-[collapsible=icon]:block cursor-pointer"
-          >
-           <Search className="size-4" />
-          </Button>
-        </section>
-      </header>
+      {/* Header with sidebar toggle */}
+      <div className="flex items-center justify-between px-4 py-2">
+        <SidebarToggle />
+      </div>
 
-      <Link
-        href="/"
-        className="px-4 py-2 w-full group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:opacity-0 transition-all"
-      >
+      {/* New Chat Button */}
+      <div className="px-4 py-2 w-full group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:opacity-0 transition-all">
+        <Link href="/">
+          <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white shadow-sm">
+            <Plus className="size-4 mr-2" />
+            <span className="group-data-[collapsible=icon]:hidden">
+              New Chat
+            </span>
+          </Button>
+        </Link>
+      </div>
+
+      {/* RAG Mode Button */}
+      <Link href="/rag-mode" className="px-4 w-full group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:opacity-0 transition-all">
         <Button
-          variant="default"
-          className="w-full h-10 bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 border-2 border-blue-600 dark:border-blue-600 text-white flex items-center justify-center group-data-[collapsible=icon]:w-0 cursor-pointer"
+          variant="outline"
+          className="w-full border-purple-200 hover:bg-purple-50 dark:border-purple-700 dark:hover:bg-purple-900/20"
         >
-          <span className="group-data-[collapsible=icon]:hidden transition-all duration-500 ease-in-out text-white font-semibold">
-            New Chat
+          <Brain className="size-4 mr-2" />
+          <span className="group-data-[collapsible=icon]:hidden">
+            RAG Mode
           </span>
         </Button>
       </Link>
 
+      {/* Search Input */}
       <div className="px-4 py-2 w-full group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:opacity-0 transition-all">
         <div className="relative flex items-center bg-transparent rounded-md px-4 py-1 w-full h-10">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-zinc-500 dark:text-zinc-400" />
@@ -90,7 +75,9 @@ const MainSection = () => {
         </div>
       </div>
 
+      {/* Chat History */}
       <ChatHistory searchQuery={isSearching ? debouncedSearchQuery : null} />
+      <RagChatHistory searchQuery={isSearching ? debouncedSearchQuery : null} />
     </>
   );
 };

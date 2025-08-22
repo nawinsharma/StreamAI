@@ -181,7 +181,7 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
                       )}
                     </div>
                   )}
-                  <div className="px-6 py-4 rounded-3xl rounded-br-lg bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-lg border border-blue-600/20 backdrop-blur-sm">
+                  <div className="px-6 py-4 rounded-3xl rounded-br-lg bg-purple-600 text-white shadow-lg border border-violet-600/20 backdrop-blur-sm">
                     <div className="text-sm leading-relaxed font-medium">
                       {cleanMessageContent(message.content)}
                     </div>
@@ -281,10 +281,6 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
     }
   };
 
-  const handleNewChat = () => {
-    router.push("/");
-  };
-
   const onSubmit = useCallback(async (prompt: string) => {
     console.log("onSubmit called with prompt:", prompt);
     console.log("User:", user);
@@ -325,7 +321,7 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
               )}
             </div>
           )}
-          <div className="px-6 py-4 rounded-3xl rounded-br-lg bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-lg border border-blue-600/20 backdrop-blur-sm">
+          <div className="px-6 py-4 rounded-3xl rounded-br-lg bg-purple-600 text-white shadow-lg border border-violet-600/20 backdrop-blur-sm">
             <div className="text-sm leading-relaxed font-medium">{prompt}</div>
           </div>
           <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center space-x-1">
@@ -515,7 +511,7 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
   if (loading && !isNewChat) {
     return (
       <div className="h-screen bg-background flex flex-col">
-        <Header onNewChat={handleNewChat} />
+        <Header />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
@@ -529,7 +525,7 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
   return (
     <div className="h-screen bg-background flex flex-col">
       {/* Header */}
-      <Header onNewChat={handleNewChat} />
+      <Header />
       
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-h-0">
@@ -544,9 +540,6 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
               <div className="flex items-center justify-center h-full">
                 <div className="text-center max-w-2xl mx-auto">
                   <h2 className="text-2xl font-semibold mb-2">{chat?.title}</h2>
-                  <p className="text-muted-foreground">
-                    Start a conversation with your AI assistant
-                  </p>
                 </div>
               </div>
             ) : (
@@ -631,4 +624,4 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
       </div>
     </div>
   );
-} 
+}

@@ -27,6 +27,7 @@ import {
 import { authClient } from "@/lib/auth-client";
 import { getChatsForUser, deleteChat } from "@/app/actions/chatActions";
 import { useTheme } from "next-themes";
+import { Button } from "../ui/button";
 
 interface ChatHistoryProps {
   searchQuery?: string | null;
@@ -45,8 +46,6 @@ const ChatHistory = ({ searchQuery }: ChatHistoryProps) => {
   const [sessionLoading, setSessionLoading] = useState(true);
   const path = usePathname();
   const router = useRouter();
-  const { theme, resolvedTheme } = useTheme();
-
   const [chatToDelete, setChatToDelete] = useState<string | null>(null);
   const [hoveredChat, setHoveredChat] = useState<string | null>(null);
   const [chats, setChats] = useState<Chat[]>([]);
@@ -159,7 +158,7 @@ const ChatHistory = ({ searchQuery }: ChatHistoryProps) => {
       <SidebarGroup className="flex flex-col h-full px-4 py-2">
       <p className={cn(
         "text-md font-semibold mb-2 group-data-[collapsible=icon]:opacity-0 transition-all duration-500 ease-in-out",
-        "text-blue-600"
+        "text-purple-600"
       )}>
         History
       </p>
@@ -206,19 +205,21 @@ const ChatHistory = ({ searchQuery }: ChatHistoryProps) => {
                       hoveredChat === chat.id ? "opacity-100" : "opacity-0"
                     )}
                   >
-                    <button
-                      type="button"
+                    <Button
                       disabled={isDeleting}
-                      onClick={(e) => handleDeleteClick(e, chat.id)}
+                      onClick={(e: any) => handleDeleteClick(e, chat.id)}
+                      variant="ghost"
+                      size="sm"
                       className={cn(
-                        "h-7 w-7 rounded-full flex items-center justify-center cursor-pointer transition-colors duration-200 pointer-events-auto",
-                        "text-zinc-500 hover:text-red-500 hover:bg-zinc-200/80",
-                        "dark:text-zinc-400 dark:hover:text-red-400 dark:hover:bg-zinc-700/80"
+                        "h-7 w-7 p-0 rounded-full flex items-center justify-center cursor-pointer transition-colors duration-200 pointer-events-auto",
+                        "text-zinc-500 hover:text-red-500 hover:bg-red-50",
+                        "dark:text-zinc-400 dark:hover:text-red-400 dark:hover:bg-red-950/50",
+                        "bg-transparent hover:bg-opacity-10"
                       )}
                       aria-label="Delete chat"
                     >
                       <X className="h-4 w-4" />
-                    </button>
+                    </Button>
                   </div>
                 </Link>
               </SidebarMenuItem>

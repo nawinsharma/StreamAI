@@ -3,175 +3,16 @@
 import { memo, useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { dracula } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { cn } from "@/lib/utils";
+import { useTheme } from "next-themes";
 
-// Custom theme without selection highlighting
-const customTheme = {
-  ...dracula,
-  'pre[class*="language-"]': {
-    ...dracula['pre[class*="language-"]'],
-    background: 'transparent',
-  },
-  'code[class*="language-"]': {
-    ...dracula['code[class*="language-"]'],
-    background: 'transparent',
-  },
-  '.token': {
-    ...dracula['.token'],
-    background: 'transparent !important',
-  },
-  '.token.comment': {
-    ...dracula['.token.comment'],
-    background: 'transparent !important',
-  },
-  '.token.prolog': {
-    ...dracula['.token.prolog'],
-    background: 'transparent !important',
-  },
-  '.token.doctype': {
-    ...dracula['.token.doctype'],
-    background: 'transparent !important',
-  },
-  '.token.cdata': {
-    ...dracula['.token.cdata'],
-    background: 'transparent !important',
-  },
-  '.token.punctuation': {
-    ...dracula['.token.punctuation'],
-    background: 'transparent !important',
-  },
-  '.token.namespace': {
-    ...dracula['.token.namespace'],
-    background: 'transparent !important',
-  },
-  '.token.property': {
-    ...dracula['.token.property'],
-    background: 'transparent !important',
-  },
-  '.token.tag': {
-    ...dracula['.token.tag'],
-    background: 'transparent !important',
-  },
-  '.token.boolean': {
-    ...dracula['.token.boolean'],
-    background: 'transparent !important',
-  },
-  '.token.number': {
-    ...dracula['.token.number'],
-    background: 'transparent !important',
-  },
-  '.token.constant': {
-    ...dracula['.token.constant'],
-    background: 'transparent !important',
-  },
-  '.token.symbol': {
-    ...dracula['.token.symbol'],
-    background: 'transparent !important',
-  },
-  '.token.deleted': {
-    ...dracula['.token.deleted'],
-    background: 'transparent !important',
-  },
-  '.token.selector': {
-    ...dracula['.token.selector'],
-    background: 'transparent !important',
-  },
-  '.token.attr-name': {
-    ...dracula['.token.attr-name'],
-    background: 'transparent !important',
-  },
-  '.token.string': {
-    ...dracula['.token.string'],
-    background: 'transparent !important',
-  },
-  '.token.char': {
-    ...dracula['.token.char'],
-    background: 'transparent !important',
-  },
-  '.token.builtin': {
-    ...dracula['.token.builtin'],
-    background: 'transparent !important',
-  },
-  '.token.inserted': {
-    ...dracula['.token.inserted'],
-    background: 'transparent !important',
-  },
-  '.token.operator': {
-    ...dracula['.token.operator'],
-    background: 'transparent !important',
-  },
-  '.token.entity': {
-    ...dracula['.token.entity'],
-    background: 'transparent !important',
-  },
-  '.token.url': {
-    ...dracula['.token.url'],
-    background: 'transparent !important',
-  },
-  '.language-css .token.string': {
-    ...dracula['.language-css .token.string'],
-    background: 'transparent !important',
-  },
-  '.style .token.string': {
-    ...dracula['.style .token.string'],
-    background: 'transparent !important',
-  },
-  '.token.variable': {
-    ...dracula['.token.variable'],
-    background: 'transparent !important',
-  },
-  '.token.atrule': {
-    ...dracula['.token.atrule'],
-    background: 'transparent !important',
-  },
-  '.token.attr-value': {
-    ...dracula['.token.attr-value'],
-    background: 'transparent !important',
-  },
-  '.token.function': {
-    ...dracula['.token.function'],
-    background: 'transparent !important',
-  },
-  '.token.class-name': {
-    ...dracula['.token.class-name'],
-    background: 'transparent !important',
-  },
-  '.token.regex': {
-    ...dracula['.token.regex'],
-    background: 'transparent !important',
-  },
-  '.token.important': {
-    ...dracula['.token.important'],
-    background: 'transparent !important',
-  },
-  '.token.keyword': {
-    ...dracula['.token.keyword'],
-    background: 'transparent !important',
-  },
-  '.token.bold': {
-    ...dracula['.token.bold'],
-    background: 'transparent !important',
-  },
-  '.token.italic': {
-    ...dracula['.token.italic'],
-    background: 'transparent !important',
-  },
-};
-
-interface CodeBlockProps {
-  inline?: boolean;
-  className?: string;
-  children: React.ReactNode;
-  [key: string]: unknown;
-}
-
-// Language mapping for better display names
+// Language mapping for display names
 const languageMap: Record<string, string> = {
   js: "JavaScript",
-  jsx: "JSX",
   ts: "TypeScript",
   tsx: "TSX",
+  jsx: "JSX",
   py: "Python",
   rb: "Ruby",
   go: "Go",
@@ -206,6 +47,13 @@ const languageMap: Record<string, string> = {
   gql: "GraphQL",
 };
 
+interface CodeBlockProps {
+  inline?: boolean;
+  className?: string;
+  children: React.ReactNode;
+  [key: string]: unknown;
+}
+
 export const CodeBlock = memo(function CodeBlock({
   inline,
   className,
@@ -213,7 +61,8 @@ export const CodeBlock = memo(function CodeBlock({
   ...props
 }: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
-
+  const { resolvedTheme } = useTheme();
+  
   const match = /language-(\w+)/.exec(className || "");
   const language = match ? match[1] : "";
   const displayLanguage = languageMap[language] || language;
@@ -229,11 +78,17 @@ export const CodeBlock = memo(function CodeBlock({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const isDark = resolvedTheme === 'dark';
+
+  // Inline code styling - adapts to theme
   if (inline) {
     return (
       <code
         className={cn(
-          "relative rounded bg-neutral-800/80 px-1.5 py-0.5 font-mono text-sm text-white break-words border border-neutral-700/50",
+          "relative rounded px-1.5 py-0.5 font-mono text-sm break-words border",
+          isDark
+            ? "bg-neutral-800/60 text-neutral-200 border-neutral-700/30"
+            : "bg-neutral-200/80 text-neutral-900 border-neutral-300/50",
           className
         )}
         {...props}
@@ -243,106 +98,88 @@ export const CodeBlock = memo(function CodeBlock({
     );
   }
 
+  // Custom dark theme to avoid selection-like appearance
+  const customDarkStyle = {
+    ...oneDark,
+    'pre[class*="language-"]': {
+      ...oneDark['pre[class*="language-"]'],
+      background: 'rgb(15 15 15)', // Much darker background
+      color: '#e5e7eb',
+    },
+    'code[class*="language-"]': {
+      ...oneDark['code[class*="language-"]'],
+      background: 'transparent',
+      color: '#e5e7eb',
+    },
+  };
+
+  // Block code with header and syntax highlighting
   return (
     <div className="relative group my-6 w-full">
       {/* Header with language and copy button */}
-      <div className="flex items-center justify-between rounded-t-lg bg-gradient-to-r from-neutral-800 to-neutral-900 px-4 py-3 text-sm border border-neutral-700/50 border-b-0">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
+      <div className={cn(
+        "flex items-center justify-between border rounded-t-lg px-4 py-2",
+        isDark
+          ? "bg-neutral-900 border-neutral-800"
+          : "bg-neutral-100 border-neutral-300"
+      )}>
+        <div className="flex items-center gap-2">
           {shouldShowLanguage && (
-            <>
-              <div className="w-3 h-3 rounded-full bg-red-500 flex-shrink-0"></div>
-              <div className="w-3 h-3 rounded-full bg-yellow-500 flex-shrink-0"></div>
-              <div className="w-3 h-3 rounded-full bg-green-500 flex-shrink-0"></div>
-              <span className="text-neutral-300 font-medium ml-2 truncate">
-                {displayLanguage}
-              </span>
-            </>
+            <span className={cn(
+              "text-xs font-medium",
+              isDark ? "text-neutral-400" : "text-neutral-600"
+            )}>
+              {displayLanguage}
+            </span>
           )}
         </div>
         <button
           onClick={handleCopy}
-          className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs text-neutral-400 hover:bg-neutral-700/50 hover:text-white transition-all duration-200 border border-neutral-600/50 hover:border-neutral-500/50 flex-shrink-0 ml-2"
+          className={cn(
+            "flex items-center gap-1.5 px-2 py-1 text-xs font-medium transition-colors rounded",
+            isDark
+              ? "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800"
+              : "text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200"
+          )}
+          aria-label="Copy code"
         >
           {copied ? (
             <>
-              <Check className="h-3 w-3" />
-              Copied!
+              <Check className="size-3" />
+              Copied
             </>
           ) : (
             <>
-              <Copy className="h-3 w-3" />
+              <Copy className="size-3" />
               Copy
             </>
           )}
         </button>
       </div>
-      
+
       {/* Code content */}
-      <div className="relative overflow-hidden rounded-b-lg border border-neutral-700/50 bg-neutral-900/90 backdrop-blur-sm">
-        <div className="overflow-x-auto w-full">
-          {language && shouldShowLanguage ? (
-            <SyntaxHighlighter
-              language={language}
-              style={customTheme}
-              customStyle={{
-                margin: 0,
-                padding: "1rem",
-                fontSize: "0.875rem",
-                lineHeight: "1.5",
-                background: "transparent",
-                borderRadius: "0 0 0.5rem 0.5rem",
-                userSelect: "none",
-                WebkitUserSelect: "none",
-                MozUserSelect: "none",
-                msUserSelect: "none",
-                width: "100%",
-                maxWidth: "100%",
-                overflowWrap: "break-word",
-                wordWrap: "break-word",
-              }}
-              showLineNumbers={true}
-              wrapLines={true}
-              wrapLongLines={true}
-              lineNumberStyle={{
-                color: "#6b7280",
-                fontSize: "0.75rem",
-                minWidth: "2.5rem",
-                paddingRight: "1rem",
-                userSelect: "none",
-              }}
-              lineProps={{
-                style: {
-                  background: "transparent",
-                  padding: "0",
-                  margin: "0",
-                  wordBreak: "break-all",
-                  whiteSpace: "pre-wrap",
-                }
-              }}
-            >
-              {String(children).replace(/\n$/, "")}
-            </SyntaxHighlighter>
-          ) : (
-            <pre className="rounded-b-lg bg-neutral-900/90 p-4 w-full overflow-x-auto">
-              <code
-                className={cn(
-                  "font-mono text-sm text-neutral-100 leading-relaxed whitespace-pre-wrap break-words w-full",
-                  className
-                )}
-                style={{
-                  wordBreak: "break-all",
-                  overflowWrap: "break-word",
-                }}
-                {...props}
-              >
-                {children}
-              </code>
-            </pre>
-          )}
-        </div>
-        
-        {/* Gradient overlay for long code blocks */}
-        <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-neutral-900/20 to-transparent pointer-events-none rounded-b-lg"></div>
+      <div className="relative overflow-hidden rounded-b-lg">
+        <SyntaxHighlighter
+          language={language || "text"}
+          style={isDark ? customDarkStyle : oneLight}
+          customStyle={{
+            margin: 0,
+            borderRadius: 0,
+            border: isDark 
+              ? "1px solid rgb(38 38 38)" 
+              : "1px solid rgb(212 212 212)",
+            borderTop: "none",
+            background: isDark 
+              ? "rgb(15 15 15)" 
+              : "rgb(249 250 251)",
+            fontSize: '14px',
+            fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+          }}
+          wrapLongLines={true}
+          showLineNumbers={false}
+        >
+          {String(children).replace(/\n$/, "")}
+        </SyntaxHighlighter>
       </div>
     </div>
   );

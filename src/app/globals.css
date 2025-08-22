@@ -112,8 +112,8 @@
   --accent: oklch(0.12 0.03 260.031);
   --accent-foreground: oklch(0.95 0.003 247.858);
   --destructive: oklch(0.65 0.25 22.216);
-  --border: oklch(0.15 0.02 255.508);
-  --input: oklch(0.12 0.03 260.031);
+  --border: oklch(0.25 0.02 255.508);
+  --input: oklch(0.15 0.03 260.031);
   --ring: oklch(0.6 0.15 264.376);
   --chart-1: oklch(0.6 0.25 264.376);
   --chart-2: oklch(0.7 0.17 162.48);
@@ -124,9 +124,9 @@
   --sidebar-foreground: oklch(0.95 0.003 247.858);
   --sidebar-primary: oklch(0.6 0.25 264.376);
   --sidebar-primary-foreground: oklch(0.05 0.02 264.695);
-  --sidebar-accent: oklch(0.12 0.03 260.031);
+  --sidebar-accent: oklch(0.15 0.03 260.031);
   --sidebar-accent-foreground: oklch(0.95 0.003 247.858);
-  --sidebar-border: oklch(0.15 0.02 255.508);
+  --sidebar-border: oklch(0.25 0.02 255.508);
   --sidebar-ring: oklch(0.6 0.15 264.376);
 }
 
@@ -138,6 +138,19 @@
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
+}
+
+/* Enhanced border visibility for dark theme */
+.dark .border {
+  border-color: oklch(0.3 0.02 255.508);
+}
+
+.dark input, .dark textarea {
+  border-color: oklch(0.3 0.02 255.508);
+}
+
+.dark [data-slot="card"] {
+  border-color: oklch(0.25 0.02 255.508);
 }
 
 /* Custom scrollbar */
