@@ -1,7 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { UserProvider } from "@/context/UserContext"
+import { authClient } from "@/lib/auth-client"
 import type { User } from "@/lib/types"
 
 interface UserProviderWrapperProps {
@@ -12,10 +13,59 @@ interface UserProviderWrapperProps {
 export default function UserProviderWrapper({ children, initialUser }: UserProviderWrapperProps) {
    const [user, setUser] = useState<User | null>(initialUser)
 
+   // Function to refresh user state from the server
+   const refreshUser = useCallback(async () => {
+      try {
+         const session = await authClient.getSession();
+         if (session?.data?.user) {
+            const userData = {
+               id: session.data.user.id,
+               email: session.data.user.email,
+               name: session.data.user.name || "",
+               emailVerified: session.data.user.emailVerified,
+               image: session.data.user.image || null,
+               createdAt: session.data.user.createdAt,
+               updatedAt: session.data.user.updatedAt,
+            };
+            setUser(userData);
+         } else {
+            setUser(null);
+         }
+      } catch (error) {
+         console.error("Error fetching user session:", error);
+         setUser(null);
+      }
+   }, []);
+
    useEffect(() => {
       // Update user state when initialUser changes
       setUser(initialUser)
    }, [initialUser])
+
+   // Listen for auth state changes
+   useEffect(() => {
+      // Set up a periodic check for auth state changes
+      const checkAuthState = async () => {
+         try {
+            const session = await authClient.getSession();
+            const hasUser = !!session?.data?.user;
+            const currentHasUser = !!user;
+            
+            // Only update if auth state has changed
+            if (hasUser !== currentHasUser) {
+               await refreshUser();
+            }
+         } catch (error) {
+            console.error("Error checking auth state:", error);
+         }
+      };
+
+      // Check immediately and then every 5 seconds
+      checkAuthState();
+      const interval = setInterval(checkAuthState, 5000);
+
+      return () => clearInterval(interval);
+   }, [user, refreshUser]);
 
    // Handle first-time login when user is authenticated
    useEffect(() => {
@@ -48,7 +98,7 @@ export default function UserProviderWrapper({ children, initialUser }: UserProvi
    }, [user?.id])
 
    return (
-      <UserProvider user={user}>
+      <UserProvider user={user} refreshUser={refreshUser}>
          {children}
       </UserProvider>
    )
