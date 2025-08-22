@@ -19,5 +19,31 @@ function getBaseURL() {
 }
 
 export const authClient = createAuthClient({
-   baseURL: getBaseURL()
+   baseURL: getBaseURL(),
+   fetchOptions: {
+      onError: async (context) => {
+         const { response } = context;
+         
+         // Handle rate limiting
+         if (response.status === 429) {
+            const retryAfter = response.headers.get("X-Retry-After");
+            console.warn(`Rate limited. Retry after ${retryAfter} seconds`);
+            
+            // Don't show toast for session checks to avoid spam
+            const url = new URL(context.request.url);
+            if (!url.pathname.includes('get-session')) {
+               // Only show toast for user-initiated actions
+               const message = `Too many requests. Please wait ${retryAfter} seconds before trying again.`;
+               // Note: We can't import toast here due to circular dependencies
+               // The calling component should handle this
+               console.error(message);
+            }
+         }
+         
+         // Handle other auth errors
+         if (response.status === 401) {
+            console.warn("Authentication failed - session may have expired");
+         }
+      }
+   }
 })
