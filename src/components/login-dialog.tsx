@@ -23,7 +23,6 @@ import { Input } from "@/components/ui/input"
 import { authClient } from "@/lib/auth-client"
 import { signInFormSchema } from "@/lib/auth-schema"
 import { processPendingData } from "@/lib/pending-messages"
-import { useUserContext } from "@/context/UserContext"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
@@ -38,7 +37,6 @@ interface LoginDialogProps {
 
 export default function LoginDialog({ isOpen }: LoginDialogProps) {
    const router = useRouter()
-   const { refreshUser } = useUserContext();
    const [isLoading, setIsLoading] = useState(false)
 
    const form = useForm<z.infer<typeof signInFormSchema>>({
@@ -65,21 +63,14 @@ export default function LoginDialog({ isOpen }: LoginDialogProps) {
                form.reset()
                toast.success("Successfully signed in!")
                
-               console.log('Login dialog sign-in successful, refreshing user state...');
-               
-               // Refresh user context first
-               if (refreshUser) {
-                  await refreshUser();
-               }
-               
+               console.log('Login dialog sign-in successful, processing pending data...');
                // Process pending data after successful sign-in
                const redirectUrl = await processPendingData();
                console.log('Redirect URL:', redirectUrl);
                if (redirectUrl) {
                   router.push(redirectUrl);
                } else {
-                  // Instead of window.location.reload(), just refresh the router
-                  router.refresh();
+                  window.location.reload(); // Force reload to update user context
                }
             },
             onError: (ctx) => {
@@ -97,21 +88,16 @@ export default function LoginDialog({ isOpen }: LoginDialogProps) {
       setIsLoading(true)
       try {
          await signInWithGoogle()
+         toast.success("Successfully signed in!")
          
-         console.log('Google sign-in successful in dialog, refreshing user state...');
-         
-         // Refresh user context first
-         if (refreshUser) {
-            await refreshUser();
-         }
-         
+         console.log('Login dialog Google sign-in successful, processing pending data...');
          // Process pending data after successful Google sign-in
          const redirectUrl = await processPendingData();
          console.log('Redirect URL:', redirectUrl);
          if (redirectUrl) {
             router.push(redirectUrl);
          } else {
-            router.refresh();
+            window.location.reload(); // Force reload to update user context
          }
       } catch {
          toast.error("Failed to sign in with Google")
@@ -131,22 +117,17 @@ export default function LoginDialog({ isOpen }: LoginDialogProps) {
                toast("Signing in as guest...")
             },
             onSuccess: async () => {
+               form.reset()
                toast.success("Successfully signed in as guest!")
                
-               console.log('Guest sign-in successful in dialog, refreshing user state...');
-               
-               // Refresh user context first
-               if (refreshUser) {
-                  await refreshUser();
-               }
-               
+               console.log('Login dialog guest sign-in successful, processing pending data...');
                // Process pending data after successful guest sign-in
                const redirectUrl = await processPendingData();
                console.log('Redirect URL:', redirectUrl);
                if (redirectUrl) {
                   router.push(redirectUrl);
                } else {
-                  router.refresh();
+                  window.location.reload(); // Force reload to update user context
                }
             },
             onError: (ctx) => {

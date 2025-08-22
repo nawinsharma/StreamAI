@@ -22,7 +22,6 @@ import { Input } from "@/components/ui/input"
 import { authClient } from "@/lib/auth-client"
 import { signInFormSchema } from "@/lib/auth-schema"
 import { processPendingData } from "@/lib/pending-messages"
-import { useUserContext } from "@/context/UserContext"
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useRouter } from "next/navigation"
@@ -34,8 +33,6 @@ import { UserIcon } from "lucide-react"
 
 export default function SignInForm() {
    const router = useRouter();
-   const { refreshUser } = useUserContext();
-   
    const form = useForm<z.infer<typeof signInFormSchema>>({
       resolver: zodResolver(signInFormSchema),
       defaultValues: {
@@ -56,13 +53,7 @@ export default function SignInForm() {
          onSuccess: async () => {
             form.reset()
             
-            console.log('Sign-in successful, refreshing user state...');
-            
-            // Refresh user context first
-            if (refreshUser) {
-               await refreshUser();
-            }
-            
+            console.log('Sign-in successful, processing pending data...');
             // Process pending data after successful sign-in
             const redirectUrl = await processPendingData();
             console.log('Redirect URL:', redirectUrl);
@@ -82,13 +73,7 @@ export default function SignInForm() {
       try {
          await signInWithGoogle();
          
-         console.log('Google sign-in successful, refreshing user state...');
-         
-         // Refresh user context first
-         if (refreshUser) {
-            await refreshUser();
-         }
-         
+         console.log('Google sign-in successful, processing pending data...');
          // Process pending data after successful Google sign-in
          const redirectUrl = await processPendingData();
          console.log('Redirect URL:', redirectUrl);
@@ -114,13 +99,7 @@ export default function SignInForm() {
             onSuccess: async () => {
                toast.success("Successfully signed in as guest!")
                
-               console.log('Guest sign-in successful, refreshing user state...');
-               
-               // Refresh user context first
-               if (refreshUser) {
-                  await refreshUser();
-               }
-               
+               console.log('Guest sign-in successful, processing pending data...');
                // Process pending data after successful guest sign-in
                const redirectUrl = await processPendingData();
                console.log('Redirect URL:', redirectUrl);
