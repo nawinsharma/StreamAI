@@ -140,7 +140,7 @@ export function HumanMessageText(props: MessageTextProps) {
   return (
     <div className="flex justify-end mb-1 animate-in slide-in-from-right-2 duration-300">
       <div className="flex flex-col items-end space-y-2 max-w-[70%]">
-        <div className="px-6 py-4 rounded-3xl rounded-br-lg bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-lg border border-blue-600/20 backdrop-blur-sm">
+        <div className="px-6 py-4 rounded-3xl rounded-br-lg bg-gradient-to-br from-violet-600 to-violet-700 text-white shadow-lg border border-violet-600/20 backdrop-blur-sm">
           <div className="text-sm leading-relaxed font-medium">{props.content}</div>
         </div>
         <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center space-x-1">
