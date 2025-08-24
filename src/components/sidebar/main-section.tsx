@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useState } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import ChatHistory from "./chat-history";
-import RagChatHistory from "./rag-chat-history";
 import { SidebarToggle } from "./sidebar-toggle";
 
 const MainSection = () => {
@@ -77,7 +76,6 @@ const MainSection = () => {
 
       {/* Chat History */}
       <ChatHistory searchQuery={isSearching ? debouncedSearchQuery : null} />
-      <RagChatHistory searchQuery={isSearching ? debouncedSearchQuery : null} />
     </>
   );
 };

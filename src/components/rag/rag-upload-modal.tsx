@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,7 @@ interface RagUploadModalProps {
 type UploadType = 'pdf' | 'website' | 'text' | 'youtube';
 
 export function RagUploadModal({ open, onOpenChange, initialType }: RagUploadModalProps) {
+  const router = useRouter();
   const [selectedType, setSelectedType] = useState<UploadType>('pdf');
   const [isDragging, setIsDragging] = useState(false);
   const [websiteUrl, setWebsiteUrl] = useState('');
@@ -228,6 +230,9 @@ export function RagUploadModal({ open, onOpenChange, initialType }: RagUploadMod
       
       onOpenChange(false);
       
+      // Redirect to the RAG chat page for the new collection
+      router.push(`/rag-mode/chat/${dbResult.data.id}`);
+      
     } catch (error) {
       console.error('Upload error:', error);
       const message = error instanceof Error ? error.message : 'Upload failed';
@@ -382,7 +387,7 @@ export function RagUploadModal({ open, onOpenChange, initialType }: RagUploadMod
               </div>
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                 <div
-                  className="bg-gradient-to-r from-purple-600 to-blue-600 h-2 rounded-full transition-all duration-300"
+                  className="bg-purple-600 h-2 rounded-full transition-all duration-300"
                   style={{ width: `${uploadProgress}%` }}
                 />
               </div>
@@ -401,7 +406,7 @@ export function RagUploadModal({ open, onOpenChange, initialType }: RagUploadMod
             <Button
               onClick={handleSubmit}
               disabled={isLoading || (selectedType === 'pdf' && !fileInputRef.current?.files?.[0])}
-              className="bg-blue-700 hover:bg-blue-800 text-white"
+              className="bg-purple-600 hover:bg-purple-700 text-white"
             >
               {isLoading ? (
                 <>

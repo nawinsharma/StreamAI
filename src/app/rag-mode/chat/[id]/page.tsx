@@ -1,18 +1,20 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ChatMessage } from "@/components/chat/chat-message";
 import { ChatInput } from "@/components/chat/chat-input";
-import { VirtualMessageList } from "@/components/chat/virtual-message-list";
-import { Skeleton } from "@/components/ui/skeleton";
+import { MessageSkeleton } from "@/components/loading-skeleton";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Header } from "@/components/ui/Header";
-import { ArrowLeft, FileText, Globe, Youtube, MessageCircle } from "lucide-react";
+import { ArrowLeft, MessageCircle, Copy, ThumbsUp, ThumbsDown, RotateCcw } from "lucide-react";
+import { Actions, Action } from "@/components/ui/actions";
+import { Markdown } from "@/components/ui/markdown";
 import Link from "next/link";
 import { toast } from "sonner";
 import { createRagChat, addRagMessage, getRagCollections, getRagChatByCollection } from "@/app/actions/ragActions";
 import { useRagStore } from "@/stores/rag-store";
+import { useScrollToBottom } from "@/components/use-scroll-to-bottom";
 
 interface RagSource {
   content: string;
@@ -44,16 +46,7 @@ interface RagChatData {
   messages: RagMessage[];
 }
 
-const MessageSkeleton = () => (
-  <div className="flex justify-start mb-6 animate-pulse">
-    <div className="flex flex-col items-start space-y-2 max-w-2xl">
-      <div className="px-6 py-4 rounded-3xl rounded-bl-lg bg-gray-200 dark:bg-gray-700">
-        <Skeleton className="h-4 w-64 mb-2" />
-        <Skeleton className="h-4 w-48" />
-      </div>
-    </div>
-  </div>
-);
+
 
 const RagChatPage = () => {
   const params = useParams();
@@ -62,12 +55,12 @@ const RagChatPage = () => {
   
   const { collections, setCollections } = useRagStore();
   const [chatData, setChatData] = useState<RagChatData | null>(null);
-  const [messages, setMessages] = useState<React.ReactNode[]>([]);
+  const [elements, setElements] = useState<React.ReactNode[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
   const [chatHistory, setChatHistory] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [messagesContainerRef, messagesEndRef, scrollToBottom] = useScrollToBottom<HTMLDivElement>();
 
   // Load collections if not available
   useEffect(() => {
@@ -103,35 +96,89 @@ const RagChatPage = () => {
   const collection = collections.find(c => c.id === collectionId);
 
   const loadMessages = useCallback((dbMessages: RagMessage[]) => {
-    const messageElements = dbMessages.map((msg, index) => (
-      <ChatMessage
-        key={`${msg.id}-${index}`}
-        isUser={msg.role === 'user'}
-        content={msg.role === 'assistant' && msg.sources ? (
-          <div className="space-y-4">
-            <div>{msg.content}</div>
-            {msg.sources && msg.sources.length > 0 && (
-              <div className="border-t pt-3 mt-3">
-                <p className="text-sm font-medium mb-2 text-gray-600 dark:text-gray-400">Sources:</p>
-                <div className="space-y-2">
-                  {msg.sources.map((source: RagSource, idx: number) => (
-                    <div key={idx} className="text-xs bg-gray-50 dark:bg-gray-800 p-2 rounded border-l-2 border-purple-500">
-                      <p className="text-gray-700 dark:text-gray-300">{source.content}</p>
-                      {source.metadata?.source && (
-                        <p className="text-gray-500 mt-1">Source: {source.metadata.source}</p>
-                      )}
-                    </div>
-                  ))}
+    const messageElements = dbMessages.map((msg, index) => {
+      if (msg.role === 'user') {
+        return (
+          <div key={`${msg.id}-${index}`} className="flex justify-end mb-1 animate-in slide-in-from-right-2 duration-300">
+            <div className="flex flex-col items-end space-y-2 max-w-[70%]">
+              <div className="px-6 py-4 rounded-3xl rounded-br-lg bg-purple-600 text-white shadow-lg border border-violet-600/20 backdrop-blur-sm">
+                <div className="text-sm leading-relaxed font-medium">
+                  {msg.content}
                 </div>
               </div>
-            )}
+              <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center space-x-1">
+                <div className="w-1 h-1 bg-gray-400 dark:bg-gray-500 rounded-full"></div>
+                <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              </div>
+            </div>
           </div>
-        ) : msg.content}
-        timestamp={new Date(msg.createdAt).toLocaleTimeString()}
-      />
-    ));
+        );
+      } else {
+        return (
+          <div key={`${msg.id}-${index}`} className="flex justify-start mb-1 animate-in slide-in-from-left-2 duration-300 group">
+            <div className="flex flex-col items-start space-y-2 max-w-[85%]">
+              <div className="px-6 py-4 rounded-3xl rounded-bl-lg text-gray-900 dark:text-gray-100">
+                {msg.sources && msg.sources.length > 0 ? (
+                  <div className="space-y-4">
+                    <div>{msg.content}</div>
+                    <div className="border-t pt-3 mt-3">
+                      <p className="text-sm font-medium mb-2 text-gray-600 dark:text-gray-400">Sources:</p>
+                      <div className="space-y-2">
+                        {msg.sources.map((source: RagSource, idx: number) => (
+                          <div key={idx} className="text-xs bg-gray-50 dark:bg-gray-800 p-2 rounded border-l-2 border-purple-500">
+                            <p className="text-gray-700 dark:text-gray-300">{source.content}</p>
+                            {source.metadata?.source && (
+                              <p className="text-gray-500 mt-1">Source: {source.metadata.source}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <Markdown>{msg.content}</Markdown>
+                )}
+              </div>
+              
+              {/* Actions - Show on hover */}
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <Actions className="mt-2">
+                  <Action
+                    onClick={() => {
+                      navigator.clipboard.writeText(msg.content);
+                      toast.success("Copied to clipboard");
+                    }}
+                    label="Copy"
+                  >
+                    <Copy className="size-3" />
+                  </Action>
+                  <Action
+                    onClick={() => toast.success("Message liked")}
+                    label="Like"
+                  >
+                    <ThumbsUp className="size-3" />
+                  </Action>
+                  <Action
+                    onClick={() => toast.success("Message disliked")}
+                    label="Dislike"
+                  >
+                    <ThumbsDown className="size-3" />
+                  </Action>
+                  <Action
+                    onClick={() => toast.success("Regenerating response...")}
+                    label="Redo"
+                  >
+                    <RotateCcw className="size-3" />
+                  </Action>
+                </Actions>
+              </div>
+            </div>
+          </div>
+        );
+      }
+    });
 
-    setMessages(messageElements);
+    setElements(messageElements);
     
     // Update chat history for context
     setChatHistory(dbMessages.map(msg => ({
@@ -248,15 +295,23 @@ const RagChatPage = () => {
 
       // Add user message to UI immediately
       const newUserMessage = (
-        <ChatMessage
-          key={`user-${Date.now()}`}
-          isUser={true}
-          content={userMessage}
-          timestamp={new Date().toLocaleTimeString()}
-        />
+        <div key={`user-${Date.now()}`} className="flex justify-end mb-1 animate-in slide-in-from-right-2 duration-300">
+          <div className="flex flex-col items-end space-y-2 max-w-[70%]">
+            <div className="px-6 py-4 rounded-3xl rounded-br-lg bg-purple-600 text-white shadow-lg border border-violet-600/20 backdrop-blur-sm">
+              <div className="text-sm leading-relaxed font-medium">{userMessage}</div>
+            </div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center space-x-1">
+              <div className="w-1 h-1 bg-gray-400 dark:bg-gray-500 rounded-full"></div>
+              <span>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+          </div>
+        </div>
       );
 
-      setMessages(prev => [...prev, newUserMessage]);
+      setElements(prev => [...prev, newUserMessage]);
+      
+      // Trigger scroll to bottom immediately after adding user message
+      setTimeout(scrollToBottom, 10);
 
       // Get RAG response
       const ragResponse = await fetch(`/api/rag/chat`, {
@@ -307,18 +362,55 @@ const RagChatPage = () => {
             </div>
           </div>
         </div>
-      ) : data.response;
-
-      const newAssistantMessage = (
-        <ChatMessage
-          key={`assistant-${Date.now()}`}
-          isUser={false}
-          content={assistantContent}
-          timestamp={new Date().toLocaleTimeString()}
-        />
+      ) : (
+        <Markdown>{data.response}</Markdown>
       );
 
-      setMessages(prev => [...prev, newAssistantMessage]);
+      const newAssistantMessage = (
+        <div key={`assistant-${Date.now()}`} className="flex justify-start mb-1 animate-in slide-in-from-left-2 duration-300 group">
+          <div className="flex flex-col items-start space-y-2 max-w-[85%]">
+            <div className="px-6 py-4 rounded-3xl rounded-bl-lg text-gray-900 dark:text-gray-100">
+              {assistantContent}
+            </div>
+            
+            {/* Actions - Show on hover */}
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <Actions className="mt-2">
+                <Action
+                  onClick={() => {
+                    navigator.clipboard.writeText(data.response);
+                    toast.success("Copied to clipboard");
+                  }}
+                  label="Copy"
+                >
+                  <Copy className="size-3" />
+                </Action>
+                <Action
+                  onClick={() => toast.success("Message liked")}
+                  label="Like"
+                >
+                  <ThumbsUp className="size-3" />
+                </Action>
+                <Action
+                  onClick={() => toast.success("Message disliked")}
+                  label="Dislike"
+                >
+                  <ThumbsDown className="size-3" />
+                </Action>
+                <Action
+                  onClick={() => toast.success("Regenerating response...")}
+                  label="Redo"
+                >
+                  <RotateCcw className="size-3" />
+                </Action>
+              </Actions>
+            </div>
+          </div>
+        </div>
+      );
+
+      setElements(prev => [...prev, newAssistantMessage]);
+      setTimeout(scrollToBottom, 10);
 
       // Update chat history
       setChatHistory(prev => [
@@ -333,41 +425,30 @@ const RagChatPage = () => {
       
       // Add error message
       const errorMessage = (
-        <ChatMessage
-          key={`error-${Date.now()}`}
-          isUser={false}
-          content="I'm sorry, I encountered an error processing your message. Please try again."
-          timestamp={new Date().toLocaleTimeString()}
-        />
+        <div key={`error-${Date.now()}`} className="flex justify-start mb-1 animate-in slide-in-from-left-2 duration-300 group">
+          <div className="flex flex-col items-start space-y-2 max-w-[85%]">
+            <div className="px-6 py-4 rounded-3xl rounded-bl-lg text-gray-900 dark:text-gray-100">
+              I&apos;m sorry, I encountered an error processing your message. Please try again.
+            </div>
+          </div>
+        </div>
       );
-      setMessages(prev => [...prev, errorMessage]);
+      setElements(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'pdf':
-      case 'text':
-        return <FileText className="w-4 h-4" />;
-      case 'website':
-        return <Globe className="w-4 h-4" />;
-      case 'youtube':
-        return <Youtube className="w-4 h-4" />;
-      default:
-        return <MessageCircle className="w-4 h-4" />;
-    }
-  };
+
 
   if (isInitializing) {
     return (
-      <div className="flex flex-col h-screen">
-        <div className="flex-1 overflow-hidden p-4">
-          <div className="max-w-4xl mx-auto space-y-6">
-            <MessageSkeleton />
-            <MessageSkeleton />
-            <MessageSkeleton />
+      <div className="h-screen bg-background flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading chat...</p>
           </div>
         </div>
       </div>
@@ -383,7 +464,7 @@ const RagChatPage = () => {
           <Link href="/rag-mode">
             <Button>
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to RAG Mode
+              Back
             </Button>
           </Link>
         </div>
@@ -392,73 +473,66 @@ const RagChatPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <Header />
+    <div className="h-screen bg-background flex flex-col">
       
-      {/* Main Content */}
-      <div className="flex flex-col" style={{ height: 'calc(100vh - 5rem)' }}>
-        {/* Page Header with Back Button */}
-        <div className="border-b bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm p-4">
-          <div className="max-w-4xl mx-auto flex items-center space-x-4">
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-h-0">
+        {/* Back Button */}
+        <div className="border-b border-border bg-background p-4">
+          <div className="max-w-4xl mx-auto">
             <Link href="/rag-mode">
-              <Button variant="ghost" size="sm">
-                <ArrowLeft className="w-4 h-4 mr-2" />
+              <Badge variant="outline" className="cursor-pointer hover:bg-muted">
+                <ArrowLeft className="w-3 h-3 mr-1" />
                 Back to RAG Mode
-              </Button>
+              </Badge>
             </Link>
-            
-            <div className="flex items-center space-x-3">
-              {getTypeIcon(chatData.collection.type)}
-              <div>
-                <h1 className="font-semibold text-lg text-gray-900 dark:text-white">
-                  Chat with {chatData.collection.name}
-                </h1>
-              </div>
-            </div>
           </div>
         </div>
 
-        {/* Messages Area */}
-        <div 
-          ref={containerRef}
-          className="flex-1 overflow-y-auto p-4"
-        >
-          <div className="max-w-4xl mx-auto">
-            {messages.length === 0 && !isLoading ? (
-              <div className="text-center py-12">
-                <div className="mx-auto w-16 h-16 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center mb-4">
-                  <MessageCircle className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+        {/* Messages Container */}
+        <div className="flex-1 overflow-hidden">
+          <div 
+            ref={messagesContainerRef}
+            data-messages-container
+            className="h-full overflow-y-auto px-4 py-6 space-y-6 max-w-4xl w-full mx-auto scrollbar-hide"
+          >
+            {elements.length === 0 && !isLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center max-w-2xl mx-auto">
+                  <div className="mx-auto w-16 h-16 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center mb-4">
+                    <MessageCircle className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                    Start a conversation
+                  </h3>
+                  <p className="text-gray-500 dark:text-gray-400 mb-6">
+                    Ask questions about &ldquo;{chatData.collection.name}&rdquo; to get started.
+                  </p>
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                  Start a conversation
-                </h3>
-                <p className="text-gray-500 dark:text-gray-400 mb-6">
-                  Ask questions about &ldquo;{chatData.collection.name}&rdquo; to get started.
-                </p>
               </div>
             ) : (
-              <VirtualMessageList
-                elements={messages}
-                isLoading={isLoading}
-                containerRef={containerRef}
-              />
+              elements.map((element, index) => (
+                <div key={`message-${index}`}>
+                  {element}
+                </div>
+              ))
             )}
             
-            {isLoading && (
-              <MessageSkeleton />
-            )}
+            {/* Loading Indicator */}
+            {isLoading && <MessageSkeleton />}
+            
+            <div ref={messagesEndRef} data-messages-end />
           </div>
         </div>
 
-        {/* Chat Input */}
+        {/* Input Area - Fixed at bottom */}
         <ChatInput
           input={input}
           setInput={setInput}
           onSubmit={handleSubmit}
           onFileSelect={async () => {}} // No file upload in RAG mode
           isLoading={isLoading}
-          hasInteracted={messages.length > 0}
+          hasInteracted={elements.length > 0}
           limitReached={false}
           uploading={false}
           user={null}
