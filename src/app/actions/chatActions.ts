@@ -11,6 +11,7 @@ export async function getChatsForUser(searchQuery?: string | null) {
     });
     
     if (!session?.user?.id) {
+      console.error("Unauthorized access attempt in getChatsForUser");
       throw new Error("Unauthorized");
     }
 
@@ -43,6 +44,15 @@ export async function getChatsForUser(searchQuery?: string | null) {
     return { success: true, data: chats };
   } catch (error) {
     console.error("Error fetching chats:", error);
+    // Add more specific error handling
+    if (error instanceof Error) {
+      if (error.message.includes("Unauthorized")) {
+        return { success: false, error: "Unauthorized access" };
+      }
+      if (error.message.includes("database") || error.message.includes("connection")) {
+        return { success: false, error: "Database connection error" };
+      }
+    }
     return { success: false, error: "Failed to fetch chats" };
   }
 }
@@ -54,6 +64,7 @@ export async function deleteChat(chatId: string) {
     });
     
     if (!session?.user?.id) {
+      console.error("Unauthorized access attempt in deleteChat");
       throw new Error("Unauthorized");
     }
 
@@ -66,6 +77,7 @@ export async function deleteChat(chatId: string) {
     });
 
     if (!chat) {
+      console.error(`Chat not found or unauthorized: ${chatId} for user ${session.user.id}`);
       throw new Error("Chat not found");
     }
 
@@ -77,6 +89,18 @@ export async function deleteChat(chatId: string) {
     return { success: true };
   } catch (error) {
     console.error("Error deleting chat:", error);
+    // Add more specific error handling
+    if (error instanceof Error) {
+      if (error.message.includes("Unauthorized")) {
+        return { success: false, error: "Unauthorized access" };
+      }
+      if (error.message.includes("Chat not found")) {
+        return { success: false, error: "Chat not found" };
+      }
+      if (error.message.includes("database") || error.message.includes("connection")) {
+        return { success: false, error: "Database connection error" };
+      }
+    }
     return { success: false, error: "Failed to delete chat" };
   }
 } 

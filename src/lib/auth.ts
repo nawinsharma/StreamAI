@@ -47,7 +47,11 @@ export const auth = betterAuth({
    // Add better CORS configuration for production
    cors: {
       origin: process.env.NODE_ENV === 'production' 
-         ? [process.env.BETTER_AUTH_URL ? process.env.BETTER_AUTH_URL : 'http://localhost:3000']
+         ? [
+            process.env.BETTER_AUTH_URL || process.env.NEXTAUTH_URL || process.env.VERCEL_URL ? 
+               `https://${process.env.BETTER_AUTH_URL || process.env.NEXTAUTH_URL || process.env.VERCEL_URL}` : 
+               'http://localhost:3000'
+           ]
          : ['http://localhost:3000'],
       credentials: true
    }
