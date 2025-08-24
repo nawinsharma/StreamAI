@@ -1,7 +1,7 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, X, Brain } from "lucide-react";
+import { Search, Plus, X, Brain, BookOpen } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -42,9 +42,22 @@ const MainSection = () => {
           variant="outline"
           className="w-full border-purple-200 hover:bg-purple-50 dark:border-purple-700 dark:hover:bg-purple-900/20"
         >
-          <Brain className="size-4 mr-2" />
+          <BookOpen className="size-4 mr-2" />
           <span className="group-data-[collapsible=icon]:hidden">
             RAG Mode
+          </span>
+        </Button>
+      </Link>
+
+      {/* Memory Button */}
+      <Link href="/memories" className="px-4 w-full group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:opacity-0 transition-all">
+        <Button
+          variant="outline"
+          className="w-full border-blue-200 hover:bg-blue-50 dark:border-blue-700 dark:hover:bg-blue-900/20"
+        >
+          <Brain className="size-4 mr-2" />
+          <span className="group-data-[collapsible=icon]:hidden">
+            Memories
           </span>
         </Button>
       </Link>

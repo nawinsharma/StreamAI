@@ -162,8 +162,8 @@ const ChatHistory = ({ searchQuery }: ChatHistoryProps) => {
       )}>
         History
       </p>
-      <SidebarGroupContent className="flex-1 overflow-y-auto">
-        <SidebarMenu className="space-y-1 pb-52">
+      <SidebarGroupContent className="flex-1 overflow-hidden">
+        <SidebarMenu className="space-y-1 pb-4">
             {chats.map((chat : Chat) => (
               <SidebarMenuItem 
                 key={chat.id}
