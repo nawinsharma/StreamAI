@@ -196,10 +196,7 @@ export function RagUploadModal({ open, onOpenChange, initialType }: RagUploadMod
 
       const dbResult = await createRagCollection(collectionData);
       
-      console.log("Database result:", dbResult);
-      
       if (!dbResult.success || !dbResult.data) {
-        console.error("Database operation failed:", dbResult.error);
         throw new Error(dbResult.error || 'Failed to save collection');
       }
 

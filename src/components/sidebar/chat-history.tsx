@@ -83,11 +83,6 @@ const ChatHistory = ({ searchQuery }: ChatHistoryProps) => {
           setChats(result.data);
         } else {
           console.error("Failed to fetch chats:", result.error);
-          // Show error toast but don't crash the component
-          if (result.error?.includes("Database connection failed")) {
-            console.warn("Database connection failed, showing empty chat list");
-            setChats([]);
-          }
         }
       } catch (error) {
         console.error("Error fetching chats:", error);

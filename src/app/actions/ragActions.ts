@@ -190,36 +190,12 @@ export async function createRagCollection(data: {
   fileSize?: number;
 }) {
   try {
-    console.log("Creating RAG collection with data:", data);
-    
     const session = await auth.api.getSession({
       headers: await headers(),
     });
 
     if (!session?.user?.id) {
-      console.error("No session or user ID found");
       return { success: false, error: "Unauthorized" };
-    }
-
-    console.log("User ID:", session.user.id);
-
-    // Test database connection first
-    try {
-      await prisma.$connect();
-      console.log("Database connection successful for RAG collection creation");
-    } catch (dbError) {
-      console.error("Database connection failed for RAG collection:", dbError);
-      return { success: false, error: `Database connection failed: ${dbError instanceof Error ? dbError.message : 'Unknown error'}` };
-    }
-
-    // Check if collection already exists
-    const existingCollection = await prisma.ragCollection.findUnique({
-      where: { collectionName: data.collectionName },
-    });
-
-    if (existingCollection) {
-      console.error("Collection already exists:", existingCollection);
-      return { success: false, error: "Collection already exists" };
     }
 
     const collection = await prisma.ragCollection.create({
@@ -229,38 +205,10 @@ export async function createRagCollection(data: {
       },
     });
 
-    console.log("RAG collection created successfully:", collection);
     return { success: true, data: collection };
   } catch (error) {
     console.error("Error creating RAG collection:", error);
-    console.error("Error details:", {
-      message: error instanceof Error ? error.message : "Unknown error",
-      stack: error instanceof Error ? error.stack : undefined,
-      data: data,
-      timestamp: new Date().toISOString()
-    });
-    
-    // Return more specific error messages
-    if (error instanceof Error) {
-      if (error.message.includes("Database connection failed")) {
-        return { success: false, error: "Database connection failed. Please try again." };
-      }
-      if (error.message.includes("Unauthorized")) {
-        return { success: false, error: "Authentication required" };
-      }
-      if (error.message.includes("Unique constraint")) {
-        return { success: false, error: "Collection already exists" };
-      }
-    }
-    
-    return { success: false, error: "Failed to create RAG collection. Please try again." };
-  } finally {
-    // Always disconnect to free up connections
-    try {
-      await prisma.$disconnect();
-    } catch (disconnectError) {
-      console.error("Error disconnecting from database:", disconnectError);
-    }
+    return { success: false, error: "Failed to create RAG collection" };
   }
 }
 
@@ -384,26 +332,12 @@ export async function getRagChatByCollection(collectionId: string) {
 
 export async function getRagChatsForUser(searchQuery?: string | null) {
   try {
-    console.log("Fetching RAG chats for user, searchQuery:", searchQuery);
-    
     const session = await auth.api.getSession({
       headers: await headers(),
     });
 
     if (!session?.user?.id) {
-      console.error("No session or user ID found for RAG chats");
       return { success: false, error: "Unauthorized" };
-    }
-
-    console.log("User ID for RAG chats:", session.user.id);
-
-    // Test database connection first
-    try {
-      await prisma.$connect();
-      console.log("Database connection successful for RAG chats");
-    } catch (dbError) {
-      console.error("Database connection failed for RAG chats:", dbError);
-      return { success: false, error: `Database connection failed: ${dbError instanceof Error ? dbError.message : 'Unknown error'}` };
     }
 
     interface WhereClause {
@@ -437,8 +371,6 @@ export async function getRagChatsForUser(searchQuery?: string | null) {
       ];
     }
 
-    console.log("RAG chats database query where clause:", where);
-
     const ragChats = await prisma.ragChat.findMany({
       where,
       include: {
@@ -454,35 +386,10 @@ export async function getRagChatsForUser(searchQuery?: string | null) {
       },
     });
 
-    console.log("Successfully fetched RAG chats:", ragChats.length);
     return { success: true, data: ragChats };
   } catch (error) {
     console.error("Error getting RAG chats:", error);
-    console.error("RAG chats error details:", {
-      message: error instanceof Error ? error.message : "Unknown error",
-      stack: error instanceof Error ? error.stack : undefined,
-      searchQuery,
-      timestamp: new Date().toISOString()
-    });
-    
-    // Return more specific error messages
-    if (error instanceof Error) {
-      if (error.message.includes("Database connection failed")) {
-        return { success: false, error: "Database connection failed. Please try again." };
-      }
-      if (error.message.includes("Unauthorized")) {
-        return { success: false, error: "Authentication required" };
-      }
-    }
-    
-    return { success: false, error: "Failed to get RAG chats. Please try again." };
-  } finally {
-    // Always disconnect to free up connections
-    try {
-      await prisma.$disconnect();
-    } catch (disconnectError) {
-      console.error("Error disconnecting from database:", disconnectError);
-    }
+    return { success: false, error: "Failed to get RAG chats" };
   }
 }
 

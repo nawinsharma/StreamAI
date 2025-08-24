@@ -91,10 +91,6 @@ const RagChatHistory = ({ searchQuery }: RagChatHistoryProps) => {
           setChats(result.data);
         } else {
           console.error("Failed to fetch RAG chats:", result.error);
-          // Show error toast but don't crash the component
-          if (result.error?.includes("Database connection failed")) {
-            console.warn("Database connection failed, showing empty RAG chat list");
-          }
         }
       } catch (error) {
         console.error("Error fetching RAG chats:", error);
