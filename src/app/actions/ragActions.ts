@@ -190,12 +190,27 @@ export async function createRagCollection(data: {
   fileSize?: number;
 }) {
   try {
+    console.log("Creating RAG collection with data:", data);
+    
     const session = await auth.api.getSession({
       headers: await headers(),
     });
 
     if (!session?.user?.id) {
+      console.error("No session or user ID found");
       return { success: false, error: "Unauthorized" };
+    }
+
+    console.log("User ID:", session.user.id);
+
+    // Check if collection already exists
+    const existingCollection = await prisma.ragCollection.findUnique({
+      where: { collectionName: data.collectionName },
+    });
+
+    if (existingCollection) {
+      console.error("Collection already exists:", existingCollection);
+      return { success: false, error: "Collection already exists" };
     }
 
     const collection = await prisma.ragCollection.create({
@@ -205,9 +220,15 @@ export async function createRagCollection(data: {
       },
     });
 
+    console.log("RAG collection created successfully:", collection);
     return { success: true, data: collection };
   } catch (error) {
     console.error("Error creating RAG collection:", error);
+    console.error("Error details:", {
+      message: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+      data: data
+    });
     return { success: false, error: "Failed to create RAG collection" };
   }
 }
