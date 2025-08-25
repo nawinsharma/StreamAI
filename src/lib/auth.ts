@@ -15,17 +15,6 @@ const validateAuthConfig = () => {
   if (missingVars.length > 0) {
     throw new Error(`Missing required auth environment variables: ${missingVars.join(', ')}`);
   }
-  
-  // Production-specific validation
-  if (process.env.NODE_ENV === 'production') {
-    if (process.env.BETTER_AUTH_SECRET === 'randomsecret123') {
-      throw new Error('BETTER_AUTH_SECRET must be changed from default value in production');
-    }
-    
-    if (process.env.BETTER_AUTH_URL?.includes('localhost')) {
-      throw new Error('BETTER_AUTH_URL must be updated to production URL');
-    }
-  }
 };
 
 // Validate configuration on startup

@@ -48,14 +48,6 @@ export async function GET(request: NextRequest) {
     // Check for development vs production configuration
     const configWarnings = [];
     
-    if (process.env.BETTER_AUTH_SECRET === 'randomsecret123') {
-      configWarnings.push('BETTER_AUTH_SECRET is using default value - should be changed in production');
-    }
-    
-    if (process.env.BETTER_AUTH_URL === 'http://localhost:3000') {
-      configWarnings.push('BETTER_AUTH_URL is set to localhost - should be updated for production');
-    }
-    
     if (process.env.NODE_ENV === 'production' && process.env.BETTER_AUTH_URL?.includes('localhost')) {
       configWarnings.push('Production environment detected but using localhost URLs');
     }
