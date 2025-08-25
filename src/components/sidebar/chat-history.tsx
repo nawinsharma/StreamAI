@@ -59,7 +59,16 @@ const ChatHistory = ({ searchQuery }: ChatHistoryProps) => {
   useEffect(() => {
     const getSession = async () => {
       try {
+        console.log('Client: Attempting to get session...');
         const sessionData = await authClient.getSession();
+        console.log('Client: Session data retrieved:', {
+          hasSession: !!sessionData,
+          hasData: !!sessionData?.data,
+          hasUser: !!sessionData?.data?.user,
+          userId: sessionData?.data?.user?.id,
+          userEmail: sessionData?.data?.user?.email,
+          sessionKeys: sessionData ? Object.keys(sessionData) : []
+        });
         setSession(sessionData);
       } catch (error) {
         console.error("Error getting session:", error);
@@ -76,6 +85,7 @@ const ChatHistory = ({ searchQuery }: ChatHistoryProps) => {
   useEffect(() => {
     const fetchChats = async () => {
       if (!session?.data?.user) {
+        console.log('Client: No user session available, skipping fetch');
         setIsLoading(false);
         return;
       }
@@ -99,25 +109,58 @@ const ChatHistory = ({ searchQuery }: ChatHistoryProps) => {
           // Show error toast
           toast.error(result.error || "Failed to fetch chats");
           
-          // Increment retry count for potential retry logic
-          setRetryCount(prev => prev + 1);
+          // If unauthorized, redirect to sign-in
+          if (result.error?.includes('Unauthorized')) {
+            console.log('Client: Redirecting to sign-in due to unauthorized error');
+            router.push('/sign-in');
+          }
         }
       } catch (error) {
         console.error("❌ Client: Error fetching chats via server action:", error);
         setError("Network error while fetching chats");
         toast.error("Network error while fetching chats");
-        setRetryCount(prev => prev + 1);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchChats();
-  }, [searchQuery, session?.data?.user, path, retryCount]);
+  }, [searchQuery, session?.data?.user, path, router]);
 
   // Retry function
   const handleRetry = () => {
-    setRetryCount(prev => prev + 1);
+    setError(null);
+    setIsLoading(true);
+    // Trigger a re-fetch by calling the fetch function directly
+    const fetchChats = async () => {
+      if (!session?.data?.user) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        console.log('🔍 Client: Retrying fetch chats for user:', session.data.user.id);
+        
+        const result = await getChatsForUser(searchQuery);
+        
+        if (result.success && result.data) {
+          setChats(result.data);
+          console.log(`✅ Client: Successfully fetched ${result.data.length} chats on retry`);
+        } else {
+          console.error("❌ Client: Failed to fetch chats on retry:", result.error);
+          setError(result.error || "Failed to fetch chats");
+          toast.error(result.error || "Failed to fetch chats");
+        }
+      } catch (error) {
+        console.error("❌ Client: Error fetching chats on retry:", error);
+        setError("Network error while fetching chats");
+        toast.error("Network error while fetching chats");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchChats();
   };
 
   const formatChatTitle = (chat: { title: string; branchName?: string | null }) => {

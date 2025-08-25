@@ -8,13 +8,37 @@ export async function getChatsForUser(searchQuery?: string | null) {
   try {
     console.log('Server Action: Fetching chats for user');
     
+    // Check database connection first
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      console.log('✅ Server Action: Database connection successful');
+    } catch (dbError) {
+      console.error('❌ Server Action: Database connection failed:', dbError);
+      return { success: false, error: "Database connection error" };
+    }
+    
+    const headersList = await headers();
+    console.log('Server Action: Headers received:', {
+      cookie: headersList.get('cookie') ? 'present' : 'missing',
+      authorization: headersList.get('authorization') ? 'present' : 'missing',
+      userAgent: headersList.get('user-agent')?.substring(0, 50) + '...'
+    });
+    
     const session = await auth.api.getSession({
-      headers: await headers()
+      headers: headersList
+    });
+    
+    console.log('Server Action: Session data:', {
+      hasSession: !!session,
+      hasUser: !!session?.user,
+      userId: session?.user?.id,
+      userEmail: session?.user?.email,
+      sessionKeys: session ? Object.keys(session) : []
     });
     
     if (!session?.user?.id) {
-      console.error("Unauthorized access attempt in getChatsForUser");
-      throw new Error("Unauthorized");
+      console.error("Unauthorized access attempt in getChatsForUser - no user ID found");
+      return { success: false, error: "Unauthorized - please sign in again" };
     }
 
     console.log(`✅ Server Action: User authenticated: ${session.user.id}`);
