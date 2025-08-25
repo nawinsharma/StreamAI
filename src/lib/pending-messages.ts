@@ -1,5 +1,4 @@
-import axios from "axios";
-import { ChatCreateResponse } from "@/types/api";
+import { createChat } from "@/app/actions/chatActions";
 
 export interface PendingMessage {
   id: string;
@@ -61,7 +60,7 @@ export const clearPendingData = () => {
  * Creates a new chat and sends the first pending message
  */
 export const processPendingData = async (): Promise<string | null> => {
-  console.log('Processing pending data...');
+  console.log('🔍 Processing pending data...');
   
   const pendingMessages = getPendingMessages();
   const pendingFiles = getPendingFiles();
@@ -78,13 +77,17 @@ export const processPendingData = async (): Promise<string | null> => {
     // Wait a bit for the user context to be fully updated
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // Create a new chat
-    console.log('Creating new chat...');
-    const chatResponse = await axios.post<ChatCreateResponse>("/api/chats", { 
-      title: "New Chat" 
-    });
-    const chatId = chatResponse.data.id;
-    console.log('Created chat with ID:', chatId);
+    // Create a new chat using server action
+    console.log('🔍 Creating new chat via server action...');
+    const chatResult = await createChat("New Chat");
+    
+    if (!chatResult.success) {
+      console.error('❌ Failed to create chat:', chatResult.error);
+      return null;
+    }
+    
+    const chatId = chatResult.data?.id;
+    console.log('✅ Created chat with ID:', chatId);
     
     // Clear pending data
     clearPendingData();
@@ -108,7 +111,7 @@ export const processPendingData = async (): Promise<string | null> => {
     console.log('Redirecting to:', redirectUrl);
     return redirectUrl;
   } catch (error) {
-    console.error('Error processing pending data:', error);
+    console.error('❌ Error processing pending data:', error);
     return null;
   }
 }; 

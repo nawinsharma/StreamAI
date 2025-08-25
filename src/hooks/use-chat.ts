@@ -1,12 +1,12 @@
 import React, { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import axios, { AxiosError } from "axios";
 import { useUser } from "@/context/UserContext";
 import { Attachment } from "@/types/chat";
-import { User, UploadResponse, ChatCreateResponse } from "@/types/api";
+import { User, UploadResponse } from "@/types/api";
 import { ERROR_MESSAGES } from "@/lib/constants";
 import { ChatMessage } from "@/components/chat/chat-message";
+import { createChat } from "@/app/actions/chatActions";
 
 interface ChatState {
   elements: React.ReactNode[];
@@ -51,22 +51,11 @@ export const useChat = (): ChatState & ChatActions => {
 
   // Error handling utility
   const handleError = useCallback((error: unknown, context: string) => {
-    console.error(`Error in ${context}:`, error);
+    console.error(`❌ Error in ${context}:`, error);
     
     let errorMessage: string = ERROR_MESSAGES.NETWORK_ERROR;
     
-    if (error instanceof AxiosError) {
-      if (error.response?.status === 401) {
-        errorMessage = "Please sign in to continue.";
-        router.push("/sign-in");
-      } else if (error.response?.status === 413) {
-        errorMessage = ERROR_MESSAGES.FILE_TOO_LARGE;
-      } else if (error.response?.status === 429) {
-        errorMessage = ERROR_MESSAGES.RATE_LIMIT_EXCEEDED;
-      } else if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      }
-    } else if (error instanceof Error) {
+    if (error instanceof Error) {
       // Check for Gemini API quota errors
       const errorStr = error.message.toLowerCase();
       if (errorStr.includes('quota') || errorStr.includes('resource_exhausted')) {
@@ -77,6 +66,9 @@ export const useChat = (): ChatState & ChatActions => {
         } else {
           errorMessage = ERROR_MESSAGES.QUOTA_EXCEEDED;
         }
+      } else if (error.message.includes('Unauthorized')) {
+        errorMessage = "Please sign in to continue.";
+        router.push("/sign-in");
       } else {
         errorMessage = error.message;
       }
@@ -132,13 +124,17 @@ export const useChat = (): ChatState & ChatActions => {
 
       setState(prev => ({ ...prev, uploading: true, error: null }));
 
-      // Ensure chat exists for auth flow
+      // Ensure chat exists for auth flow using server action
       let ensuredChatId = state.currentChatId;
       if (!ensuredChatId) {
-        const chatResponse = await axios.post<ChatCreateResponse>("/api/chats", { 
-          title: "New Chat" 
-        });
-        ensuredChatId = chatResponse.data.id;
+        console.log('🔍 Client: Creating chat via server action for file upload');
+        const chatResult = await createChat("New Chat");
+        
+        if (!chatResult.success) {
+          throw new Error(chatResult.error || "Failed to create chat");
+        }
+        
+        ensuredChatId = chatResult.data.id;
         setState(prev => ({ ...prev, currentChatId: ensuredChatId }));
         router.push(`/chat/${ensuredChatId}`);
       }
@@ -173,6 +169,7 @@ export const useChat = (): ChatState & ChatActions => {
         uploading: false,
       }));
 
+      console.log('✅ Client: File uploaded successfully via server action');
       toast.success('File uploaded successfully');
     } catch (error) {
       handleError(error, 'file upload');
@@ -189,9 +186,17 @@ export const useChat = (): ChatState & ChatActions => {
         return;
       }
       
-      // Create new chat for authenticated users
-      const response = await axios.post<ChatCreateResponse>("/api/chats", { title: "New Chat" });
-      router.push(`/chat/${response.data.id}`);
+      console.log('🔍 Client: Creating new chat via server action');
+      
+      // Create new chat for authenticated users using server action
+      const chatResult = await createChat("New Chat");
+      
+      if (!chatResult.success) {
+        throw new Error(chatResult.error || "Failed to create chat");
+      }
+      
+      console.log('✅ Client: New chat created successfully via server action');
+      router.push(`/chat/${chatResult.data.id}`);
     } catch (error) {
       handleError(error, 'chat creation');
     }
@@ -233,13 +238,22 @@ export const useChat = (): ChatState & ChatActions => {
         error: null 
       }));
 
-      // Create chat if we don't have one yet
+      // Create chat if we don't have one yet using server action
       let chatId: string | undefined = state.currentChatId || undefined;
       if (!chatId) {
         const title = prompt.substring(0, 50) + (prompt.length > 50 ? "..." : "");
-        const response = await axios.post<ChatCreateResponse>("/api/chats", { title });
-        chatId = response.data.id;
+        console.log('🔍 Client: Creating chat via server action for message submission');
+        
+        const chatResult = await createChat(title);
+        
+        if (!chatResult.success) {
+          throw new Error(chatResult.error || "Failed to create chat");
+        }
+        
+        chatId = chatResult.data.id;
         setState(prev => ({ ...prev, currentChatId: chatId as string | null }));
+        
+        console.log('✅ Client: Chat created successfully via server action for message');
         
         // Immediately redirect to chat page with message parameter
         // This eliminates the double loading and makes the flow seamless

@@ -11,7 +11,7 @@ import { Header } from "@/components/ui/Header";
 import { useUser } from "@/context/UserContext";
 import { useRouter } from "next/navigation";
 import { use } from "react";
-import axios from "axios";
+import { getChat } from "@/app/actions/chatActions";
 import { FilePreview } from "@/components/ui/file-preview";
 import { AttachmentButton } from "@/components/ui/attachment-button";
 import { ChatImage } from "@/components/ui/chat-image";
@@ -145,13 +145,31 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
 
   const fetchChat = async () => {
     try {
-      const response = await axios.get(`/api/chats/${chatId}`);
-      if (response.status === 200) {
-        const chatData = response.data;
-        setChat(chatData);
+      console.log('🔍 Client: Fetching chat via server action:', chatId);
+      const result = await getChat(chatId);
+      
+      if (result.success && result.data) {
+        const chatData = result.data;
+        console.log('✅ Client: Chat fetched successfully via server action');
+        
+        // Transform the data to match the Chat interface
+        const transformedChat: Chat = {
+          id: chatData.id,
+          title: chatData.title,
+          messages: chatData.messages.map(msg => ({
+            id: msg.id,
+            role: msg.role as "user" | "assistant",
+            content: msg.content,
+            createdAt: msg.createdAt
+          })),
+          createdAt: chatData.createdAt,
+          updatedAt: chatData.updatedAt
+        };
+        
+        setChat(transformedChat);
         
         // Convert existing messages to UI elements
-        const messageElements = chatData.messages.map((message: Message) => {
+        const messageElements = transformedChat.messages.map((message: Message) => {
           if (message.role === "user") {
             const att = tryParseAttachmentFromContent(message.content);
             return (
@@ -241,11 +259,12 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
         
         setElements(messageElements);
       } else {
-        toast.error("Failed to load chat");
+        console.error("❌ Client: Failed to fetch chat via server action:", result.error);
+        toast.error(result.error || "Failed to load chat");
         router.push("/");
       }
     } catch (error) {
-      console.error("Error fetching chat:", error);
+      console.error("❌ Client: Error fetching chat via server action:", error);
       toast.error("Failed to load chat");
       router.push("/");
     } finally {

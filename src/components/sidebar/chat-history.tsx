@@ -84,15 +84,16 @@ const ChatHistory = ({ searchQuery }: ChatHistoryProps) => {
       setError(null);
       
       try {
-        console.log('🔍 Fetching chats for user:', session.data.user.id);
+        console.log('🔍 Client: Fetching chats for user:', session.data.user.id);
         
+        // Use server action instead of client-side API call
         const result = await getChatsForUser(searchQuery);
         
         if (result.success && result.data) {
           setChats(result.data);
-          console.log(`✅ Successfully fetched ${result.data.length} chats`);
+          console.log(`✅ Client: Successfully fetched ${result.data.length} chats via server action`);
         } else {
-          console.error("Failed to fetch chats:", result.error);
+          console.error("❌ Client: Failed to fetch chats via server action:", result.error);
           setError(result.error || "Failed to fetch chats");
           
           // Show error toast
@@ -102,7 +103,7 @@ const ChatHistory = ({ searchQuery }: ChatHistoryProps) => {
           setRetryCount(prev => prev + 1);
         }
       } catch (error) {
-        console.error("Error fetching chats:", error);
+        console.error("❌ Client: Error fetching chats via server action:", error);
         setError("Network error while fetching chats");
         toast.error("Network error while fetching chats");
         setRetryCount(prev => prev + 1);
@@ -134,7 +135,11 @@ const ChatHistory = ({ searchQuery }: ChatHistoryProps) => {
     if (chatToDelete) {
       setIsDeleting(true);
       try {
+        console.log('🔍 Client: Deleting chat via server action:', chatToDelete);
+        
+        // Use server action instead of client-side API call
         const result = await deleteChat(chatToDelete);
+        
         if (result.success) {
           // Remove the deleted chat from the local state
           setChats(prevChats => prevChats.filter(chat => chat.id !== chatToDelete));
@@ -144,13 +149,14 @@ const ChatHistory = ({ searchQuery }: ChatHistoryProps) => {
             router.back();
           }
           
+          console.log('✅ Client: Chat deleted successfully via server action');
           toast.success("Chat deleted successfully");
         } else {
-          console.error("Failed to delete chat:", result.error);
+          console.error("❌ Client: Failed to delete chat via server action:", result.error);
           toast.error(result.error || "Failed to delete chat");
         }
       } catch (error) {
-        console.error("Error deleting chat:", error);
+        console.error("❌ Client: Error deleting chat via server action:", error);
         toast.error("Error deleting chat");
       } finally {
         setIsDeleting(false);
