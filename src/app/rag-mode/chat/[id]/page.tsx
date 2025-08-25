@@ -196,16 +196,21 @@ const RagChatPage = () => {
         // Wait for collection to be available
         if (!collection) {
           // If collection is not found, redirect to RAG mode
+          console.error('❌ Collection not found:', collectionId);
           toast.error("Collection not found");
           router.push("/rag-mode");
           return;
         }
+
+        console.log('🔍 Initializing chat for collection:', collectionId);
 
         // First try to get existing chat for this collection
         const existingChatResult = await getRagChatByCollection(collectionId);
         
         if (existingChatResult.success && existingChatResult.data) {
           // Use existing chat
+          console.log('✅ Found existing chat:', existingChatResult.data.id);
+          
           const transformedData: RagChatData = {
             id: existingChatResult.data.id,
             title: existingChatResult.data.title,
@@ -230,12 +235,16 @@ const RagChatPage = () => {
           loadMessages(transformedData.messages);
         } else {
           // Create new chat if none exists
+          console.log('🔍 Creating new chat for collection:', collectionId);
+          
           const result = await createRagChat(
             collectionId, 
             `Chat with ${collection.name}`
           );
           
           if (result.success && result.data) {
+            console.log('✅ Created new chat:', result.data.id);
+            
             // Transform the data to match our interface
             const transformedData: RagChatData = {
               id: result.data.id,
@@ -260,12 +269,13 @@ const RagChatPage = () => {
             setChatData(transformedData);
             loadMessages(transformedData.messages);
           } else {
+            console.error('❌ Failed to create chat:', result.error);
             toast.error("Failed to create chat session");
             router.push("/rag-mode");
           }
         }
       } catch (error) {
-        console.error("Failed to initialize chat:", error);
+        console.error("❌ Failed to initialize chat:", error);
         toast.error("Failed to initialize chat");
         router.push("/rag-mode");
       } finally {

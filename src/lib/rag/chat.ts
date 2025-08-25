@@ -3,13 +3,33 @@ import { QdrantVectorStore } from "@langchain/qdrant";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateText } from "ai";
 
+// Validate Google API key
+const validateGoogleAPIKey = () => {
+  const apiKeys = [
+    process.env.GOOGLE_API_KEY,
+    process.env.GOOGLE_AI_API_KEY,
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+    process.env.GEMINI_API_KEY
+  ];
+  
+  const validKey = apiKeys.find(key => key && key.length > 0);
+  
+  if (!validKey) {
+    throw new Error('No valid Google API key found. Please set one of: GOOGLE_API_KEY, GOOGLE_AI_API_KEY, GOOGLE_GENERATIVE_AI_API_KEY, or GEMINI_API_KEY');
+  }
+  
+  return validKey;
+};
+
+const GOOGLE_API_KEY = validateGoogleAPIKey();
+
 const embeddings = new GoogleGenerativeAIEmbeddings({
-  apiKey: process.env.GOOGLE_API_KEY,
+  apiKey: GOOGLE_API_KEY,
   model: "models/embedding-001",
 });
 
 // Initialize Google provider for AI SDK
-const google = createGoogleGenerativeAI({ apiKey: process.env.GOOGLE_API_KEY });
+const google = createGoogleGenerativeAI({ apiKey: GOOGLE_API_KEY });
 
 export interface RagChatResponse {
   response: string;

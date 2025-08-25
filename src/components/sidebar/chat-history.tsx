@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/sidebar";
 import { usePathname, useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
-import { GitBranch, X } from "lucide-react";
+import { GitBranch, X, RefreshCw } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useState, useEffect } from "react";
 import {
@@ -28,6 +28,7 @@ import { authClient } from "@/lib/auth-client";
 import { getChatsForUser, deleteChat } from "@/app/actions/chatActions";
 import { useTheme } from "next-themes";
 import { Button } from "../ui/button";
+import { toast } from "sonner";
 
 interface ChatHistoryProps {
   searchQuery?: string | null;
@@ -51,6 +52,8 @@ const ChatHistory = ({ searchQuery }: ChatHistoryProps) => {
   const [chats, setChats] = useState<Chat[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   // Get session on component mount
   useEffect(() => {
@@ -60,6 +63,7 @@ const ChatHistory = ({ searchQuery }: ChatHistoryProps) => {
         setSession(sessionData);
       } catch (error) {
         console.error("Error getting session:", error);
+        toast.error("Failed to get session. Please refresh the page.");
       } finally {
         setSessionLoading(false);
       }
@@ -77,22 +81,43 @@ const ChatHistory = ({ searchQuery }: ChatHistoryProps) => {
       }
 
       setIsLoading(true);
+      setError(null);
+      
       try {
+        console.log('🔍 Fetching chats for user:', session.data.user.id);
+        
         const result = await getChatsForUser(searchQuery);
+        
         if (result.success && result.data) {
           setChats(result.data);
+          console.log(`✅ Successfully fetched ${result.data.length} chats`);
         } else {
           console.error("Failed to fetch chats:", result.error);
+          setError(result.error || "Failed to fetch chats");
+          
+          // Show error toast
+          toast.error(result.error || "Failed to fetch chats");
+          
+          // Increment retry count for potential retry logic
+          setRetryCount(prev => prev + 1);
         }
       } catch (error) {
         console.error("Error fetching chats:", error);
+        setError("Network error while fetching chats");
+        toast.error("Network error while fetching chats");
+        setRetryCount(prev => prev + 1);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchChats();
-  }, [searchQuery, session?.data?.user, path]);
+  }, [searchQuery, session?.data?.user, path, retryCount]);
+
+  // Retry function
+  const handleRetry = () => {
+    setRetryCount(prev => prev + 1);
+  };
 
   const formatChatTitle = (chat: { title: string; branchName?: string | null }) => {
       const cleanTitle = chat.title.replace(/^Branch from: /, '');
@@ -118,11 +143,15 @@ const ChatHistory = ({ searchQuery }: ChatHistoryProps) => {
           if(path === `/chat/${chatToDelete}`) {
             router.back();
           }
+          
+          toast.success("Chat deleted successfully");
         } else {
           console.error("Failed to delete chat:", result.error);
+          toast.error(result.error || "Failed to delete chat");
         }
       } catch (error) {
         console.error("Error deleting chat:", error);
+        toast.error("Error deleting chat");
       } finally {
         setIsDeleting(false);
         setChatToDelete(null);
@@ -143,6 +172,36 @@ const ChatHistory = ({ searchQuery }: ChatHistoryProps) => {
             {[...Array(5)].map((_, i) => (
               <Skeleton key={i} className="h-8 w-full rounded-md" />
             ))}
+          </div>
+        </SidebarGroupContent>
+      </SidebarGroup>
+    );
+  }
+
+  // Show error state with retry button
+  if (error && chats.length === 0) {
+    return (
+      <SidebarGroup className="flex flex-col h-full px-4 py-2">
+        <p className={cn(
+          "text-md font-semibold mb-2 group-data-[collapsible=icon]:opacity-0 transition-all duration-500 ease-in-out",
+          "text-purple-600"
+        )}>
+          History
+        </p>
+        <SidebarGroupContent className="flex-1 overflow-y-auto">
+          <div className="text-center py-8">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+              {error}
+            </p>
+            <Button
+              onClick={handleRetry}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Retry
+            </Button>
           </div>
         </SidebarGroupContent>
       </SidebarGroup>

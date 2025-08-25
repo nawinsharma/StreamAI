@@ -2,6 +2,35 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import prisma from "./prisma";
 
+// Validate required auth environment variables
+const validateAuthConfig = () => {
+  const requiredVars = [
+    'GOOGLE_CLIENT_ID', 
+    'GOOGLE_CLIENT_SECRET',
+    'BETTER_AUTH_SECRET',
+    'BETTER_AUTH_URL'
+  ];
+  const missingVars = requiredVars.filter(varName => !process.env[varName]);
+  
+  if (missingVars.length > 0) {
+    throw new Error(`Missing required auth environment variables: ${missingVars.join(', ')}`);
+  }
+  
+  // Production-specific validation
+  if (process.env.NODE_ENV === 'production') {
+    if (process.env.BETTER_AUTH_SECRET === 'randomsecret123') {
+      throw new Error('BETTER_AUTH_SECRET must be changed from default value in production');
+    }
+    
+    if (process.env.BETTER_AUTH_URL?.includes('localhost')) {
+      throw new Error('BETTER_AUTH_URL must be updated to production URL');
+    }
+  }
+};
+
+// Validate configuration on startup
+validateAuthConfig();
+
 export const auth = betterAuth({
    database: prismaAdapter(prisma, {
       provider: "postgresql"
@@ -32,6 +61,18 @@ export const auth = betterAuth({
          "/sign-up": {
             window: 60,
             max: 5, // Keep sign-up attempts limited
+         },
+         "/api/upload": {
+            window: 60,
+            max: 10, // Limit file uploads
+         },
+         "/api/rag/*": {
+            window: 60,
+            max: 20, // Limit RAG operations
+         },
+         "/api/chat": {
+            window: 60,
+            max: 30, // Limit chat requests
          }
       }
    },
@@ -54,5 +95,14 @@ export const auth = betterAuth({
            ]
          : ['http://localhost:3000'],
       credentials: true
+   },
+   // Add better error handling
+   onError: (error: Error, request: Request) => {
+      console.error('Auth error:', {
+         error: error.message,
+         url: request.url,
+         method: request.method,
+         timestamp: new Date().toISOString()
+      });
    }
 })
