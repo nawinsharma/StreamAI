@@ -24,7 +24,7 @@ export async function hasExistingMemories(userId: string): Promise<boolean> {
           in: await prisma.chat.findMany({
             where: { userId },
             select: { id: true }
-          }).then(chats => chats.map(c => c.id))
+          }).then((chats: any) => chats.map((c: any) => c.id))
         }
       }
     });

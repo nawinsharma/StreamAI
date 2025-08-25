@@ -127,7 +127,7 @@ async function getConversationHistory(chatId: string): Promise<CoreMessage[]> {
 
     console.log(`[Context] Fetched ${messages.length} messages for chat ${chatId}`);
     
-    return messages.map((msg) => ({
+    return messages.map((msg: any) => ({
       role: msg.role as "user" | "assistant",
       content: msg.content,
     }));

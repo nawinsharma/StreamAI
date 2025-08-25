@@ -43,7 +43,7 @@ const RagDashboard = () => {
       try {
         const result = await getRagCollections();
         if (result.success && result.data) {
-          setCollections(result.data.map(col => ({
+          setCollections(result.data.map((col: any) => ({
             id: col.id,
             name: col.name,
             collectionName: col.collectionName,

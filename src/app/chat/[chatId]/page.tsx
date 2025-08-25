@@ -156,7 +156,7 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
         const transformedChat: Chat = {
           id: chatData.id,
           title: chatData.title,
-          messages: chatData.messages.map(msg => ({
+          messages: chatData.messages.map((msg: any) => ({
             id: msg.id,
             role: msg.role as "user" | "assistant",
             content: msg.content,

@@ -11,9 +11,9 @@ export async function getChatsForUser(searchQuery?: string | null) {
     // Check database connection first
     try {
       await prisma.$queryRaw`SELECT 1`;
-      console.log('✅ Server Action: Database connection successful');
+      console.log('Server Action: Database connection successful');
     } catch (dbError) {
-      console.error('❌ Server Action: Database connection failed:', dbError);
+      console.error('Server Action: Database connection failed:', dbError);
       return { success: false, error: "Database connection error" };
     }
     

@@ -69,7 +69,7 @@ const RagChatPage = () => {
         try {
           const result = await getRagCollections();
           if (result.success && result.data) {
-            setCollections(result.data.map(col => ({
+            setCollections(result.data.map((col: any) => ({
               id: col.id,
               name: col.name,
               collectionName: col.collectionName,
@@ -222,7 +222,7 @@ const RagChatPage = () => {
               summary: existingChatResult.data.collection.summary,
               sourceUrl: existingChatResult.data.collection.sourceUrl,
             },
-            messages: existingChatResult.data.messages.map(msg => ({
+            messages: existingChatResult.data.messages.map((msg: any) => ({
               id: msg.id,
               content: msg.content,
               role: msg.role as 'user' | 'assistant',
@@ -257,7 +257,7 @@ const RagChatPage = () => {
                 summary: result.data.collection.summary,
                 sourceUrl: result.data.collection.sourceUrl,
               },
-              messages: result.data.messages.map(msg => ({
+              messages: result.data.messages.map((msg: any) => ({
                 id: msg.id,
                 content: msg.content,
                 role: msg.role as 'user' | 'assistant',
