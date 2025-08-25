@@ -134,9 +134,11 @@ export const useChat = (): ChatState & ChatActions => {
           throw new Error(chatResult.error || "Failed to create chat");
         }
         
-        ensuredChatId = chatResult.data.id;
+        ensuredChatId = chatResult.data?.id || null;
         setState(prev => ({ ...prev, currentChatId: ensuredChatId }));
-        router.push(`/chat/${ensuredChatId}`);
+        if (ensuredChatId) {
+          router.push(`/chat/${ensuredChatId}`);
+        }
       }
 
       // Upload file
@@ -196,7 +198,9 @@ export const useChat = (): ChatState & ChatActions => {
       }
       
       console.log('✅ Client: New chat created successfully via server action');
-      router.push(`/chat/${chatResult.data.id}`);
+      if (chatResult.data?.id) {
+        router.push(`/chat/${chatResult.data.id}`);
+      }
     } catch (error) {
       handleError(error, 'chat creation');
     }
@@ -250,8 +254,10 @@ export const useChat = (): ChatState & ChatActions => {
           throw new Error(chatResult.error || "Failed to create chat");
         }
         
-        chatId = chatResult.data.id;
-        setState(prev => ({ ...prev, currentChatId: chatId as string | null }));
+        chatId = chatResult.data?.id;
+        if (chatId) {
+          setState(prev => ({ ...prev, currentChatId: chatId as string | null }));
+        }
         
         console.log('✅ Client: Chat created successfully via server action for message');
         
