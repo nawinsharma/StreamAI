@@ -26,14 +26,7 @@ export async function deleteMemoryAction(
 
     // Handle individual memory deletion
     if (memoryId) {
-      console.log("Deleting memory from Mem0:", {
-        memoryId,
-        userId: session.user.id,
-        apiKeyLength: process.env.MEM0_API_KEY?.length,
-      });
-
       await mem0Client.delete(memoryId);
-      console.log("Memory deleted successfully:", memoryId);
       return { success: true };
     }
     
@@ -43,7 +36,6 @@ export async function deleteMemoryAction(
         user_id: session.user.id,
       })) as MemoryApiResponse[];
 
-      // Find and delete memories for this chat
       const chatMemoryIds = memories
         .filter(
           (memory: MemoryApiResponse) => memory.metadata?.chat_id === chatId
@@ -55,14 +47,11 @@ export async function deleteMemoryAction(
         await mem0Client.delete(memoryId);
       }
 
-      console.log(`Deleted ${chatMemoryIds.length} memories for chat ${chatId}`);
       return { success: true };
     }
     
-    // Neither memoryId nor chatId provided
     return { success: false, error: "Either memoryId or chatId is required" };
   } catch (error) {
-    console.error("Error deleting memory:", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to delete memory",

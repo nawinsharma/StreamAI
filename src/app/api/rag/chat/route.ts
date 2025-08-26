@@ -20,7 +20,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Process the chat request
     const chatResponse = await chatWithCollection(
       userQuery.trim(),
       collectionName,

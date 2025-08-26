@@ -24,9 +24,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { authClient } from "@/lib/auth-client";
 import { getRagChatsForUser, deleteRagChat } from "@/app/actions/ragActions";
-import { useTheme } from "next-themes";
+import { useUser } from "@/context/UserContext";
 
 interface RagChatHistoryProps {
   searchQuery?: string | null;
@@ -48,42 +47,22 @@ interface RagChat {
 }
 
 const RagChatHistory = ({ searchQuery }: RagChatHistoryProps) => {
-  const [session, setSession] = useState<any>(null);
-  const [sessionLoading, setSessionLoading] = useState(true);
   const path = usePathname();
   const router = useRouter();
-  const { theme, resolvedTheme } = useTheme();
-
   const [chatToDelete, setChatToDelete] = useState<string | null>(null);
   const [hoveredChat, setHoveredChat] = useState<string | null>(null);
   const [chats, setChats] = useState<RagChat[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Get session on component mount
-  useEffect(() => {
-    const getSession = async () => {
-      try {
-        const sessionData = await authClient.getSession();
-        setSession(sessionData);
-      } catch (error) {
-        console.error("Error getting session:", error);
-      } finally {
-        setSessionLoading(false);
-      }
-    };
+  const session = useUser();
 
-    getSession();
-  }, []);
-
-  // Fetch chats when component mounts or searchQuery changes
   useEffect(() => {
     const fetchChats = async () => {
-      if (!session?.data?.user) {
+      if (!session) {
         setIsLoading(false);
         return;
       }
-
       setIsLoading(true);
       try {
         const result = await getRagChatsForUser(searchQuery);
@@ -100,7 +79,7 @@ const RagChatHistory = ({ searchQuery }: RagChatHistoryProps) => {
     };
 
     fetchChats();
-  }, [searchQuery, session?.data?.user, path]);
+  }, [searchQuery, session, path]);
 
   const formatChatTitle = (chat: RagChat) => {
     const cleanTitle = chat.title.replace(/^Chat with /, '');
@@ -151,7 +130,7 @@ const RagChatHistory = ({ searchQuery }: RagChatHistoryProps) => {
     }
   };
 
-  if (sessionLoading || isLoading) {
+  if (isLoading) {
     return (
       <SidebarGroup className="flex flex-col h-full px-4 py-2">
         <p className={cn(

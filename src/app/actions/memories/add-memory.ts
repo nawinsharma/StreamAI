@@ -25,13 +25,6 @@ export async function addMemoryAction(
     const { text, options } = request;
     const { chatId, metadata = {} } = options;
 
-    console.log("Adding memory to Mem0:", {
-      userId: session.user.id,
-      chatId,
-      textLength: text.length,
-      apiKeyLength: process.env.MEM0_API_KEY?.length,
-    });
-
     // Convert text to the message format expected by mem0 API
     const messages = [
       {
@@ -50,16 +43,8 @@ export async function addMemoryAction(
       },
     });
 
-    console.log("Memory added successfully, result:", result);
-    
-    // Check if the result indicates success
-    if (Array.isArray(result) && result.length === 0) {
-      console.warn("Memory add returned empty array - this might indicate an issue");
-    }
-
     return { success: true };
   } catch (error) {
-    console.error("Error adding memory:", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to add memory",

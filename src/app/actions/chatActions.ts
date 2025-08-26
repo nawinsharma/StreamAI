@@ -4,59 +4,22 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import prisma from "@/lib/prisma";
 
-export async function getChatsForUser(searchQuery?: string | null) {
+export async function getChatsForUser({searchQuery}: {searchQuery?: string | null} = {}) {
   try {
-    console.log('Server Action: Fetching chats for user');
-    
-    // Check database connection first
-    try {
-      await prisma.$queryRaw`SELECT 1`;
-      console.log('Server Action: Database connection successful');
-    } catch (dbError) {
-      console.error('Server Action: Database connection failed:', dbError);
-      return { success: false, error: "Database connection error" };
-    }
-    
-    const headersList = await headers();
-    console.log('Server Action: Headers received:', {
-      cookie: headersList.get('cookie') ? 'present' : 'missing',
-      authorization: headersList.get('authorization') ? 'present' : 'missing',
-      userAgent: headersList.get('user-agent')?.substring(0, 50) + '...'
-    });
-    
-    const session = await auth.api.getSession({
-      headers: headersList
-    });
-    
-    console.log('Server Action: Session data:', {
-      hasSession: !!session,
-      hasUser: !!session?.user,
-      userId: session?.user?.id,
-      userEmail: session?.user?.email,
-      sessionKeys: session ? Object.keys(session) : []
-    });
-    
-    if (!session?.user?.id) {
-      console.error("Unauthorized access attempt in getChatsForUser - no user ID found");
-      return { success: false, error: "Unauthorized - please sign in again" };
-    }
 
-    console.log(`✅ Server Action: User authenticated: ${session.user.id}`);
-
-    const whereClause: any = {
-      userId: session.user.id,
-    };
-
-    // Add search functionality if searchQuery is provided
-    if (searchQuery) {
-      whereClause.title = {
-        contains: searchQuery,
-        mode: 'insensitive' as const,
-      };
-    }
-
+const session = await auth.api.getSession({
+  headers: await headers()
+});
     const chats = await prisma.chat.findMany({
-      where: whereClause,
+      where: {
+        userId: session?.user.id,
+        ...(searchQuery ? {
+          OR: [
+            { title: { contains: searchQuery, mode: 'insensitive' } },
+            { messages: { some: { content: { contains: searchQuery, mode: 'insensitive' } } } }
+          ]
+        } : {}),
+      },
       include: {
         messages: {
           orderBy: {
@@ -68,13 +31,8 @@ export async function getChatsForUser(searchQuery?: string | null) {
         updatedAt: "desc",
       },
     });
-
-    console.log(`✅ Server Action: Found ${chats.length} chats for user ${session.user.id}`);
-
     return { success: true, data: chats };
   } catch (error) {
-    console.error("❌ Server Action: Error fetching chats:", error);
-    // Add more specific error handling
     if (error instanceof Error) {
       if (error.message.includes("Unauthorized")) {
         return { success: false, error: "Unauthorized access" };
@@ -89,21 +47,16 @@ export async function getChatsForUser(searchQuery?: string | null) {
 
 export async function createChat(title: string) {
   try {
-    console.log('🔍 Server Action: Creating chat with title:', title);
-    
     const session = await auth.api.getSession({
       headers: await headers()
     });
     
     if (!session?.user?.id) {
-      console.error("❌ Unauthorized access attempt in createChat");
+      console.error(" Unauthorized access attempt in createChat");
       throw new Error("Unauthorized");
     }
 
-    console.log(`✅ Server Action: User authenticated: ${session.user.id}`);
-
     if (!title || title.trim().length === 0) {
-      console.error("❌ Server Action: Empty title provided");
       throw new Error("Title is required");
     }
 
@@ -116,13 +69,8 @@ export async function createChat(title: string) {
         messages: true,
       },
     });
-
-    console.log(`✅ Server Action: Chat created successfully: ${chat.id}`);
-
     return { success: true, data: chat };
   } catch (error) {
-    console.error("❌ Server Action: Error creating chat:", error);
-    // Add more specific error handling
     if (error instanceof Error) {
       if (error.message.includes("Unauthorized")) {
         return { success: false, error: "Unauthorized access" };
@@ -140,18 +88,14 @@ export async function createChat(title: string) {
 
 export async function deleteChat(chatId: string) {
   try {
-    console.log('🔍 Server Action: Deleting chat:', chatId);
-    
     const session = await auth.api.getSession({
       headers: await headers()
     });
     
     if (!session?.user?.id) {
-      console.error("❌ Unauthorized access attempt in deleteChat");
+      console.error(" Unauthorized access attempt in deleteChat");
       throw new Error("Unauthorized");
     }
-
-    // Verify chat exists and belongs to user
     const chat = await prisma.chat.findFirst({
       where: {
         id: chatId,
@@ -160,7 +104,7 @@ export async function deleteChat(chatId: string) {
     });
 
     if (!chat) {
-      console.error(`❌ Server Action: Chat not found or unauthorized: ${chatId} for user ${session.user.id}`);
+      console.error(`Server Action: Chat not found or unauthorized: ${chatId} for user ${session.user.id}`);
       throw new Error("Chat not found");
     }
 
@@ -168,13 +112,9 @@ export async function deleteChat(chatId: string) {
     await prisma.chat.delete({
       where: { id: chatId },
     });
-
-    console.log(`✅ Server Action: Chat deleted successfully: ${chatId}`);
-
     return { success: true };
   } catch (error) {
-    console.error("❌ Server Action: Error deleting chat:", error);
-    // Add more specific error handling
+    console.error("Server Action: Error deleting chat:", error);
     if (error instanceof Error) {
       if (error.message.includes("Unauthorized")) {
         return { success: false, error: "Unauthorized access" };
@@ -192,18 +132,13 @@ export async function deleteChat(chatId: string) {
 
 export async function getChat(chatId: string) {
   try {
-    console.log('🔍 Server Action: Getting chat by ID:', chatId);
-    
     const session = await auth.api.getSession({
       headers: await headers()
     });
     
     if (!session?.user?.id) {
-      console.error("❌ Unauthorized access attempt in getChat");
       throw new Error("Unauthorized");
     }
-
-    console.log(`✅ Server Action: User authenticated: ${session.user.id}`);
 
     const chat = await prisma.chat.findFirst({
       where: {
@@ -220,16 +155,10 @@ export async function getChat(chatId: string) {
     });
 
     if (!chat) {
-      console.error(`❌ Server Action: Chat not found: ${chatId} for user ${session.user.id}`);
       throw new Error("Chat not found");
     }
-
-    console.log(`✅ Server Action: Chat found: ${chat.id} with ${chat.messages.length} messages`);
-
     return { success: true, data: chat };
   } catch (error) {
-    console.error("❌ Server Action: Error getting chat:", error);
-    // Add more specific error handling
     if (error instanceof Error) {
       if (error.message.includes("Unauthorized")) {
         return { success: false, error: "Unauthorized access" };

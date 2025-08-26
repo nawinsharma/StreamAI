@@ -133,62 +133,62 @@ const RagDashboard = () => {
         </div>
 
         {/* Quick Actions - Upload Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <Card 
-            className="cursor-pointer hover:shadow-lg transition-shadow" 
+            className="cursor-pointer hover:shadow-lg transition-shadow h-full flex flex-col" 
             onClick={() => handleCardClick('pdf')}
           >
-            <CardHeader className="text-center">
+            <CardHeader className="text-center flex-1 flex flex-col justify-center">
               <div className="mx-auto w-12 h-12 bg-red-100 dark:bg-red-900 rounded-lg flex items-center justify-center mb-2">
                 <Upload className="w-6 h-6 text-red-600 dark:text-red-400" />
               </div>
               <CardTitle className="text-lg">Upload PDF</CardTitle>
-              <CardDescription>
+              <CardDescription className="text-sm">
                 Extract and index content from PDF documents
               </CardDescription>
             </CardHeader>
           </Card>
 
           <Card 
-            className="cursor-pointer hover:shadow-lg transition-shadow" 
+            className="cursor-pointer hover:shadow-lg transition-shadow h-full flex flex-col" 
             onClick={() => handleCardClick('website')}
           >
-            <CardHeader className="text-center">
+            <CardHeader className="text-center flex-1 flex flex-col justify-center">
               <div className="mx-auto w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center mb-2">
                 <Globe className="w-6 h-6 text-blue-600 dark:text-blue-400" />
               </div>
               <CardTitle className="text-lg">Scrape Website</CardTitle>
-              <CardDescription>
+              <CardDescription className="text-sm">
                 Index content from any website URL
               </CardDescription>
             </CardHeader>
           </Card>
-
+{/* 
           <Card 
-            className="cursor-pointer hover:shadow-lg transition-shadow" 
+            className="cursor-pointer hover:shadow-lg transition-shadow h-full flex flex-col" 
             onClick={() => handleCardClick('text')}
           >
-            <CardHeader className="text-center">
+            <CardHeader className="text-center flex-1 flex flex-col justify-center">
               <div className="mx-auto w-12 h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center mb-2">
                 <FileText className="w-6 h-6 text-green-600 dark:text-green-400" />
               </div>
               <CardTitle className="text-lg">Add Text</CardTitle>
-              <CardDescription>
+              <CardDescription className="text-sm">
                 Paste text content directly for indexing
               </CardDescription>
             </CardHeader>
-          </Card>
+          </Card> */}
 
           <Card 
-            className="cursor-pointer hover:shadow-lg transition-shadow" 
+            className="cursor-pointer hover:shadow-lg transition-shadow h-full flex flex-col" 
             onClick={() => handleCardClick('youtube')}
           >
-            <CardHeader className="text-center">
+            <CardHeader className="text-center flex-1 flex flex-col justify-center">
               <div className="mx-auto w-12 h-12 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center mb-2">
                 <Youtube className="w-6 h-6 text-purple-600 dark:text-purple-400" />
               </div>
               <CardTitle className="text-lg">YouTube Video</CardTitle>
-              <CardDescription>
+              <CardDescription className="text-sm">
                 Extract content from YouTube videos
               </CardDescription>
             </CardHeader>
@@ -217,38 +217,42 @@ const RagDashboard = () => {
                 {filteredCollections.map((collection) => (
                   <Card 
                     key={collection.id} 
-                    className="hover:shadow-lg transition-shadow cursor-pointer"
+                    className="hover:shadow-lg transition-shadow cursor-pointer h-full flex flex-col"
                     onClick={() => handleCollectionClick(collection.id)}
                   >
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          {getTypeIcon(collection.type)}
+                    <CardHeader className="flex-shrink-0">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start space-x-3 flex-1 min-w-0">
+                          <div className="flex-shrink-0 mt-1">
+                            {getTypeIcon(collection.type)}
+                          </div>
                           <div className="flex-1 min-w-0">
-                            <CardTitle className="text-lg truncate">
+                            <CardTitle className="text-lg leading-tight break-words">
                               {collection.name}
                             </CardTitle>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                               {new Date(collection.createdAt).toLocaleDateString()}
                             </p>
                           </div>
                         </div>
-                        <Badge className={getTypeColor(collection.type)}>
-                          {collection.type}
-                        </Badge>
+                        <div className="flex-shrink-0 ml-2">
+                          <Badge className={`${getTypeColor(collection.type)} text-xs`}>
+                            {collection.type}
+                          </Badge>
+                        </div>
                       </div>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="flex-1 flex flex-col justify-end">
                       {collection.sourceUrl && (
-                        <p className="text-xs text-blue-600 dark:text-blue-400 truncate mb-3">
+                        <p className="text-xs text-blue-600 dark:text-blue-400 break-all mb-3">
                           {collection.sourceUrl}
                         </p>
                       )}
                       
-                      <div className="flex justify-between items-center">
+                      <div className="flex justify-between items-center gap-2">
                         <Button 
                           size="sm" 
-                          className="bg-purple-600 hover:bg-purple-700"
+                          className="bg-purple-600 hover:bg-purple-700 flex-1"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleCollectionClick(collection.id);
@@ -264,7 +268,7 @@ const RagDashboard = () => {
                             e.stopPropagation();
                             handleDeleteCollection(collection.id);
                           }}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 flex-shrink-0"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>

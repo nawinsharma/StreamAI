@@ -11,8 +11,7 @@ import {
 } from "@/components/ui/sidebar";
 import { usePathname, useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
-import { GitBranch, X, RefreshCw } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { X } from "lucide-react";
 import { useState, useEffect } from "react";
 import {
   AlertDialog,
@@ -24,11 +23,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { authClient } from "@/lib/auth-client";
-import { getChatsForUser, deleteChat } from "@/app/actions/chatActions";
-import { useTheme } from "next-themes";
+import { deleteChat, getChatsForUser } from "@/app/actions/chatActions";
 import { Button } from "../ui/button";
 import { toast } from "sonner";
+import { useUser } from "@/context/UserContext";
 
 interface ChatHistoryProps {
   searchQuery?: string | null;
@@ -43,8 +41,6 @@ interface Chat {
 }
 
 const ChatHistory = ({ searchQuery }: ChatHistoryProps) => {
-  const [session, setSession] = useState<any>(null);
-  const [sessionLoading, setSessionLoading] = useState(true);
   const path = usePathname();
   const router = useRouter();
   const [chatToDelete, setChatToDelete] = useState<string | null>(null);
@@ -52,121 +48,39 @@ const ChatHistory = ({ searchQuery }: ChatHistoryProps) => {
   const [chats, setChats] = useState<Chat[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
 
-  // Get session on component mount
-  useEffect(() => {
-    const getSession = async () => {
-      try {
-        console.log('Client: Attempting to get session...');
-        const sessionData = await authClient.getSession();
-        console.log('Client: Session data retrieved:', {
-          hasSession: !!sessionData,
-          hasData: !!sessionData?.data,
-          hasUser: !!sessionData?.data?.user,
-          userId: sessionData?.data?.user?.id,
-          userEmail: sessionData?.data?.user?.email,
-          sessionKeys: sessionData ? Object.keys(sessionData) : []
-        });
-        setSession(sessionData);
-      } catch (error) {
-        console.error("Error getting session:", error);
-        toast.error("Failed to get session. Please refresh the page.");
-      } finally {
-        setSessionLoading(false);
-      }
-    };
-
-    getSession();
-  }, []);
-
-  // Fetch chats when component mounts or searchQuery changes
-  useEffect(() => {
-    const fetchChats = async () => {
-      if (!session?.data?.user) {
-        console.log('Client: No user session available, skipping fetch');
-        setIsLoading(false);
-        return;
-      }
-
-      setIsLoading(true);
-      setError(null);
-      
-      try {
-        console.log('🔍 Client: Fetching chats for user:', session.data.user.id);
-        
-        // Use server action instead of client-side API call
-        const result = await getChatsForUser(searchQuery);
-        
-        if (result.success && result.data) {
-          setChats(result.data);
-          console.log(`✅ Client: Successfully fetched ${result.data.length} chats via server action`);
-        } else {
-          console.error("❌ Client: Failed to fetch chats via server action:", result.error);
-          setError(result.error || "Failed to fetch chats");
-          
-          // Show error toast
-          toast.error(result.error || "Failed to fetch chats");
-          
-          // If unauthorized, redirect to sign-in
-          if (result.error?.includes('Unauthorized')) {
-            console.log('Client: Redirecting to sign-in due to unauthorized error');
-            router.push('/sign-in');
-          }
-        }
-      } catch (error) {
-        console.error("❌ Client: Error fetching chats via server action:", error);
-        setError("Network error while fetching chats");
-        toast.error("Network error while fetching chats");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchChats();
-  }, [searchQuery, session?.data?.user, path, router]);
-
-  // Retry function
-  const handleRetry = () => {
-    setError(null);
-    setIsLoading(true);
-    // Trigger a re-fetch by calling the fetch function directly
-    const fetchChats = async () => {
-      if (!session?.data?.user) {
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        console.log('🔍 Client: Retrying fetch chats for user:', session.data.user.id);
-        
-        const result = await getChatsForUser(searchQuery);
-        
-        if (result.success && result.data) {
-          setChats(result.data);
-          console.log(`✅ Client: Successfully fetched ${result.data.length} chats on retry`);
-        } else {
-          console.error("❌ Client: Failed to fetch chats on retry:", result.error);
-          setError(result.error || "Failed to fetch chats");
-          toast.error(result.error || "Failed to fetch chats");
-        }
-      } catch (error) {
-        console.error("❌ Client: Error fetching chats on retry:", error);
-        setError("Network error while fetching chats");
-        toast.error("Network error while fetching chats");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchChats();
-  };
-
+  const session = useUser();
   const formatChatTitle = (chat: { title: string; branchName?: string | null }) => {
       const cleanTitle = chat.title.replace(/^Branch from: /, '');
       return cleanTitle;
   };
+
+  // Load chats for the currently signed-in user
+  useEffect(() => {
+    const loadChats = async () => {
+      // If no user, stop loading and clear chats
+      if (!session) {
+        setChats([]);
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        const result = await getChatsForUser({ searchQuery: searchQuery ? String(searchQuery) : null });
+        if (result.success && result.data) {
+          setChats(result.data as unknown as Chat[]);
+        } else {
+          setChats([]);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadChats();
+  }, [session, searchQuery]);
+
 
   const handleDeleteClick = (e: React.MouseEvent, chatId: string) => {
     e.preventDefault();
@@ -178,28 +92,18 @@ const ChatHistory = ({ searchQuery }: ChatHistoryProps) => {
     if (chatToDelete) {
       setIsDeleting(true);
       try {
-        console.log('🔍 Client: Deleting chat via server action:', chatToDelete);
-        
-        // Use server action instead of client-side API call
         const result = await deleteChat(chatToDelete);
         
         if (result.success) {
-          // Remove the deleted chat from the local state
           setChats(prevChats => prevChats.filter(chat => chat.id !== chatToDelete));
-          
-          // Navigate back if we're on the deleted chat page
           if(path === `/chat/${chatToDelete}`) {
             router.back();
           }
-          
-          console.log('✅ Client: Chat deleted successfully via server action');
           toast.success("Chat deleted successfully");
         } else {
-          console.error("❌ Client: Failed to delete chat via server action:", result.error);
           toast.error(result.error || "Failed to delete chat");
         }
       } catch (error) {
-        console.error("❌ Client: Error deleting chat via server action:", error);
         toast.error("Error deleting chat");
       } finally {
         setIsDeleting(false);
@@ -208,9 +112,6 @@ const ChatHistory = ({ searchQuery }: ChatHistoryProps) => {
     }
   };
 
-  if (sessionLoading || !session?.data?.user) {
-    return null;
-  }
 
   if (isLoading) {
     return (
@@ -227,8 +128,8 @@ const ChatHistory = ({ searchQuery }: ChatHistoryProps) => {
     );
   }
 
-  // Show error state with retry button
-  if (error && chats.length === 0) {
+  // If user is not signed in
+  if (!session) {
     return (
       <SidebarGroup className="flex flex-col h-full px-4 py-2">
         <p className={cn(
@@ -240,17 +141,34 @@ const ChatHistory = ({ searchQuery }: ChatHistoryProps) => {
         <SidebarGroupContent className="flex-1 overflow-y-auto">
           <div className="text-center py-8">
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-              {error}
+              Sign in to view history
             </p>
             <Button
-              onClick={handleRetry}
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2"
+              onClick={() => router.push('/sign-in')}
+              className="h-8 px-3 text-sm"
             >
-              <RefreshCw className="h-4 w-4" />
-              Retry
+              Sign in
             </Button>
+          </div>
+        </SidebarGroupContent>
+      </SidebarGroup>
+    );
+  }
+
+  if (chats.length === 0) {
+    return (
+      <SidebarGroup className="flex flex-col h-full px-4 py-2">
+        <p className={cn(
+          "text-md font-semibold mb-2 group-data-[collapsible=icon]:opacity-0 transition-all duration-500 ease-in-out",
+          "text-purple-600"
+        )}>
+          History
+        </p>
+        <SidebarGroupContent className="flex-1 overflow-y-auto">
+          <div className="text-center py-8">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+              No chats found
+            </p>
           </div>
         </SidebarGroupContent>
       </SidebarGroup>

@@ -16,6 +16,8 @@ interface ChatInputProps {
   limitReached: boolean;
   uploading: boolean;
   user: User | null;
+  showAttachments?: boolean;
+  showSuggestions?: boolean;
 }
 
 export const ChatInput = React.memo(({
@@ -27,7 +29,9 @@ export const ChatInput = React.memo(({
   hasInteracted,
   limitReached,
   uploading,
-  user
+  user,
+  showAttachments = true,
+  showSuggestions = true
 }: ChatInputProps) => {
   const formRef = useRef<HTMLFormElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -72,7 +76,7 @@ export const ChatInput = React.memo(({
     <div className="border-t border-border bg-background input-area">
       <div className="max-w-4xl mx-auto p-4">
         {/* Suggestion Questions - only show when no messages and not typing */}
-        {!hasInteracted && (
+        {!hasInteracted && showSuggestions && (
           <SuggestionQuestions onQuestionClick={handleSuggestionClick} />
         )}
         
@@ -82,11 +86,13 @@ export const ChatInput = React.memo(({
           className="flex items-end gap-3"
         >
           {/* File Upload */}
-          <AttachmentButton
-            onFileSelect={onFileSelect}
-            disabled={isLoading}
-            uploading={uploading}
-          />
+          {showAttachments && (
+            <AttachmentButton
+              onFileSelect={onFileSelect}
+              disabled={isLoading}
+              uploading={uploading}
+            />
+          )}
           
           {/* Text Input */}
           <div className="flex-1 relative">

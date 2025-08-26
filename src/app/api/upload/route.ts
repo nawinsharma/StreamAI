@@ -5,9 +5,6 @@ import prisma from "@/lib/prisma";
 import { uploadAnyToCloudinary } from "@/lib/cloudinary";
 import { extractTextFromFile, truncateText } from "@/lib/extract";
 
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
-
 export async function POST(req: NextRequest) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });

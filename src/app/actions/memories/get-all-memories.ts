@@ -31,7 +31,6 @@ export async function getAllMemoriesAction(): Promise<{
 
     return { memories };
   } catch (error) {
-    console.error("Error getting all memories:", error);
     return {
       memories: [],
       error: error instanceof Error ? error.message : "Failed to get memories",

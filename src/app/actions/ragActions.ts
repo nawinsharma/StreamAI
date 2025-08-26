@@ -6,20 +6,14 @@ import { headers } from "next/headers";
 
 export async function createRagChat(collectionId: string, title: string) {
   try {
-    console.log('🔍 Creating RAG chat - Request started', { collectionId, title });
-    
     const session = await auth.api.getSession({
       headers: await headers(),
     });
 
     if (!session?.user?.id) {
-      console.log('❌ Unauthorized access attempt in createRagChat');
       return { success: false, error: "Unauthorized" };
     }
 
-    console.log(`✅ User authenticated: ${session.user.id}`);
-
-    // Verify collection exists and belongs to user
     const collection = await prisma.ragCollection.findFirst({
       where: {
         id: collectionId,
@@ -28,7 +22,6 @@ export async function createRagChat(collectionId: string, title: string) {
     });
 
     if (!collection) {
-      console.log(`❌ Collection not found or unauthorized: ${collectionId} for user ${session.user.id}`);
       return { success: false, error: "Collection not found" };
     }
 
@@ -48,13 +41,8 @@ export async function createRagChat(collectionId: string, title: string) {
       },
     });
 
-    console.log(`✅ RAG chat created successfully: ${ragChat.id}`);
-
     return { success: true, data: ragChat };
   } catch (error) {
-    console.error("❌ Error creating RAG chat:", error);
-    
-    // Add more specific error handling
     if (error instanceof Error) {
       if (error.message.includes('database') || error.message.includes('connection')) {
         return { success: false, error: "Database connection error" };
@@ -70,14 +58,13 @@ export async function createRagChat(collectionId: string, title: string) {
 
 export async function createRagMessage(chatId: string, content: string, role: 'user' | 'assistant', sources?: any[]) {
   try {
-    console.log('🔍 Creating RAG message - Request started', { chatId, role, contentLength: content.length });
+    console.log('Creating RAG message - Request started', { chatId, role, contentLength: content.length });
     
     const session = await auth.api.getSession({
       headers: await headers(),
     });
 
     if (!session?.user?.id) {
-      console.log('❌ Unauthorized access attempt in createRagMessage');
       return { success: false, error: "Unauthorized" };
     }
 
@@ -90,7 +77,6 @@ export async function createRagMessage(chatId: string, content: string, role: 'u
     });
 
     if (!chat) {
-      console.log(`❌ RAG chat not found or unauthorized: ${chatId} for user ${session.user.id}`);
       return { success: false, error: "RAG chat not found" };
     }
 
@@ -103,13 +89,8 @@ export async function createRagMessage(chatId: string, content: string, role: 'u
       },
     });
 
-    console.log(`✅ RAG message created successfully: ${message.id}`);
-
     return { success: true, data: message };
   } catch (error) {
-    console.error("❌ Error creating RAG message:", error);
-    
-    // Add more specific error handling
     if (error instanceof Error) {
       if (error.message.includes('database') || error.message.includes('connection')) {
         return { success: false, error: "Database connection error" };
@@ -125,14 +106,12 @@ export async function createRagMessage(chatId: string, content: string, role: 'u
 
 export async function getRagChats(collectionId?: string) {
   try {
-    console.log('🔍 Getting RAG chats - Request started', { collectionId });
     
     const session = await auth.api.getSession({
       headers: await headers(),
     });
 
     if (!session?.user?.id) {
-      console.log('❌ Unauthorized access attempt in getRagChats');
       return { success: false, error: "Unauthorized" };
     }
 
@@ -155,13 +134,8 @@ export async function getRagChats(collectionId?: string) {
       },
     });
 
-    console.log(`✅ Found ${chats.length} RAG chats for user ${session.user.id}`);
-
     return { success: true, data: chats };
   } catch (error) {
-    console.error("❌ Error getting RAG chats:", error);
-    
-    // Add more specific error handling
     if (error instanceof Error) {
       if (error.message.includes('database') || error.message.includes('connection')) {
         return { success: false, error: "Database connection error" };
@@ -174,14 +148,12 @@ export async function getRagChats(collectionId?: string) {
 
 export async function getRagChat(chatId: string) {
   try {
-    console.log('🔍 Getting RAG chat - Request started', { chatId });
     
     const session = await auth.api.getSession({
       headers: await headers(),
     });
 
     if (!session?.user?.id) {
-      console.log('❌ Unauthorized access attempt in getRagChat');
       return { success: false, error: "Unauthorized" };
     }
 
@@ -201,17 +173,11 @@ export async function getRagChat(chatId: string) {
     });
 
     if (!chat) {
-      console.log(`❌ RAG chat not found: ${chatId} for user ${session.user.id}`);
       return { success: false, error: "RAG chat not found" };
     }
 
-    console.log(`✅ RAG chat found: ${chat.id}`);
-
     return { success: true, data: chat };
   } catch (error) {
-    console.error("❌ Error getting RAG chat:", error);
-    
-    // Add more specific error handling
     if (error instanceof Error) {
       if (error.message.includes('database') || error.message.includes('connection')) {
         return { success: false, error: "Database connection error" };
@@ -224,18 +190,16 @@ export async function getRagChat(chatId: string) {
 
 export async function deleteRagChat(chatId: string) {
   try {
-    console.log('🔍 Deleting RAG chat - Request started', { chatId });
     
     const session = await auth.api.getSession({
       headers: await headers(),
     });
 
     if (!session?.user?.id) {
-      console.log('❌ Unauthorized access attempt in deleteRagChat');
       return { success: false, error: "Unauthorized" };
     }
 
-    // Verify chat belongs to user
+    // Verify chat belongs to user  
     const chat = await prisma.ragChat.findFirst({
       where: {
         id: chatId,
@@ -244,7 +208,6 @@ export async function deleteRagChat(chatId: string) {
     });
 
     if (!chat) {
-      console.log(`❌ RAG chat not found or unauthorized: ${chatId} for user ${session.user.id}`);
       return { success: false, error: "RAG chat not found" };
     }
 
@@ -252,13 +215,8 @@ export async function deleteRagChat(chatId: string) {
       where: { id: chatId },
     });
 
-    console.log(`✅ RAG chat deleted successfully: ${chatId}`);
-
     return { success: true };
   } catch (error) {
-    console.error("❌ Error deleting RAG chat:", error);
-    
-    // Add more specific error handling
     if (error instanceof Error) {
       if (error.message.includes('database') || error.message.includes('connection')) {
         return { success: false, error: "Database connection error" };
@@ -279,14 +237,12 @@ export async function createRagCollection(data: {
   fileSize?: number;
 }) {
   try {
-    console.log('🔍 Creating RAG collection - Request started', { name: data.name, type: data.type });
     
     const session = await auth.api.getSession({
       headers: await headers(),
     });
 
     if (!session?.user?.id) {
-      console.log('❌ Unauthorized access attempt in createRagCollection');
       return { success: false, error: "Unauthorized" };
     }
 
@@ -297,13 +253,8 @@ export async function createRagCollection(data: {
       },
     });
 
-    console.log(`✅ RAG collection created successfully: ${collection.id}`);
-
     return { success: true, data: collection };
   } catch (error) {
-    console.error("❌ Error creating RAG collection:", error);
-    
-    // Add more specific error handling
     if (error instanceof Error) {
       if (error.message.includes('database') || error.message.includes('connection')) {
         return { success: false, error: "Database connection error" };
@@ -319,14 +270,12 @@ export async function createRagCollection(data: {
 
 export async function getRagCollections() {
   try {
-    console.log('🔍 Getting RAG collections - Request started');
     
     const session = await auth.api.getSession({
       headers: await headers(),
     });
 
     if (!session?.user?.id) {
-      console.log('❌ Unauthorized access attempt in getRagCollections');
       return { success: false, error: "Unauthorized" };
     }
 
@@ -347,13 +296,8 @@ export async function getRagCollections() {
       },
     });
 
-    console.log(`✅ Found ${collections.length} RAG collections for user ${session.user.id}`);
-
     return { success: true, data: collections };
   } catch (error) {
-    console.error("❌ Error getting RAG collections:", error);
-    
-    // Add more specific error handling
     if (error instanceof Error) {
       if (error.message.includes('database') || error.message.includes('connection')) {
         return { success: false, error: "Database connection error" };
@@ -366,14 +310,12 @@ export async function getRagCollections() {
 
 export async function addRagMessage(chatId: string, content: string, role: 'user' | 'assistant', sources?: unknown) {
   try {
-    console.log('🔍 Adding RAG message - Request started', { chatId, role, contentLength: content.length });
     
     const session = await auth.api.getSession({
       headers: await headers(),
     });
 
     if (!session?.user?.id) {
-      console.log('❌ Unauthorized access attempt in addRagMessage');
       return { success: false, error: "Unauthorized" };
     }
 
@@ -386,7 +328,7 @@ export async function addRagMessage(chatId: string, content: string, role: 'user
     });
 
     if (!ragChat) {
-      console.log(`❌ RAG chat not found or unauthorized: ${chatId} for user ${session.user.id}`);
+      console.log(`RAG chat not found or unauthorized: ${chatId} for user ${session.user.id}`);
       return { success: false, error: "RAG chat not found" };
     }
 
@@ -405,13 +347,9 @@ export async function addRagMessage(chatId: string, content: string, role: 'user
       data: { updatedAt: new Date() },
     });
 
-    console.log(`✅ RAG message added successfully: ${message.id}`);
-
     return { success: true, data: message };
   } catch (error) {
-    console.error("❌ Error adding RAG message:", error);
     
-    // Add more specific error handling
     if (error instanceof Error) {
       if (error.message.includes('database') || error.message.includes('connection')) {
         return { success: false, error: "Database connection error" };
@@ -427,14 +365,12 @@ export async function addRagMessage(chatId: string, content: string, role: 'user
 
 export async function getRagChatByCollection(collectionId: string) {
   try {
-    console.log('🔍 Getting RAG chat by collection - Request started', { collectionId });
     
     const session = await auth.api.getSession({
       headers: await headers(),
     });
 
     if (!session?.user?.id) {
-      console.log('❌ Unauthorized access attempt in getRagChatByCollection');
       return { success: false, error: "Unauthorized" };
     }
 
@@ -458,17 +394,12 @@ export async function getRagChatByCollection(collectionId: string) {
     });
 
     if (!ragChat) {
-      console.log(`❌ No RAG chat found for collection: ${collectionId} for user ${session.user.id}`);
+      console.log(`No RAG chat found for collection: ${collectionId} for user ${session.user.id}`);
       return { success: false, error: "No chat found for this collection" };
     }
 
-    console.log(`✅ RAG chat found for collection: ${ragChat.id}`);
-
     return { success: true, data: ragChat };
   } catch (error) {
-    console.error("❌ Error getting RAG chat by collection:", error);
-    
-    // Add more specific error handling
     if (error instanceof Error) {
       if (error.message.includes('database') || error.message.includes('connection')) {
         return { success: false, error: "Database connection error" };
@@ -481,14 +412,12 @@ export async function getRagChatByCollection(collectionId: string) {
 
 export async function getRagChatsForUser(searchQuery?: string | null) {
   try {
-    console.log('🔍 Getting RAG chats for user - Request started', { searchQuery });
     
     const session = await auth.api.getSession({
       headers: await headers(),
     });
 
     if (!session?.user?.id) {
-      console.log('❌ Unauthorized access attempt in getRagChatsForUser');
       return { success: false, error: "Unauthorized" };
     }
 
@@ -538,13 +467,8 @@ export async function getRagChatsForUser(searchQuery?: string | null) {
       },
     });
 
-    console.log(`✅ Found ${ragChats.length} RAG chats for user ${session.user.id}`);
-
     return { success: true, data: ragChats };
   } catch (error) {
-    console.error("❌ Error getting RAG chats for user:", error);
-    
-    // Add more specific error handling
     if (error instanceof Error) {
       if (error.message.includes('database') || error.message.includes('connection')) {
         return { success: false, error: "Database connection error" };
@@ -577,7 +501,7 @@ export async function deleteRagCollection(collectionId: string) {
     });
 
     if (!collection) {
-      console.log(`❌ RAG collection not found or unauthorized: ${collectionId} for user ${session.user.id}`);
+      console.log(`RAG collection not found or unauthorized: ${collectionId} for user ${session.user.id}`);
       return { success: false, error: "RAG collection not found" };
     }
 
@@ -585,13 +509,8 @@ export async function deleteRagCollection(collectionId: string) {
       where: { id: collectionId },
     });
 
-    console.log(`✅ RAG collection deleted successfully: ${collectionId}`);
-
     return { success: true };
   } catch (error) {
-    console.error("❌ Error deleting RAG collection:", error);
-    
-    // Add more specific error handling
     if (error instanceof Error) {
       if (error.message.includes('database') || error.message.includes('connection')) {
         return { success: false, error: "Database connection error" };

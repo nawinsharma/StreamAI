@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ChatInput } from "@/components/chat/chat-input";
-import { MessageSkeleton } from "@/components/loading-skeleton";
+import { AISkeletonLoading } from "@/components/message";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Header } from "@/components/ui/Header";
@@ -185,6 +185,9 @@ const RagChatPage = () => {
       role: msg.role,
       content: msg.content
     })));
+    
+    // Scroll to bottom after loading messages
+    setTimeout(scrollToBottom, 100);
   }, []);
 
   // Initialize or load existing chat
@@ -295,6 +298,9 @@ const RagChatPage = () => {
     setIsLoading(true);
     const userMessage = message.trim();
     setInput("");
+    
+    // Scroll to show loading indicator
+    setTimeout(scrollToBottom, 10);
 
     try {
       // Add user message to database
@@ -322,8 +328,7 @@ const RagChatPage = () => {
       
       // Trigger scroll to bottom immediately after adding user message
       setTimeout(scrollToBottom, 10);
-
-      // Get RAG response
+      
       const ragResponse = await fetch(`/api/rag/chat`, {
         method: 'POST',
         headers: {
@@ -421,6 +426,9 @@ const RagChatPage = () => {
 
       setElements(prev => [...prev, newAssistantMessage]);
       setTimeout(scrollToBottom, 10);
+      
+      // Also scroll after a longer delay to ensure content is rendered
+      setTimeout(scrollToBottom, 100);
 
       // Update chat history
       setChatHistory(prev => [
@@ -428,6 +436,9 @@ const RagChatPage = () => {
         { role: 'user', content: userMessage },
         { role: 'assistant', content: data.response }
       ]);
+
+      // Final scroll to ensure we're at the bottom
+      setTimeout(scrollToBottom, 10);
 
     } catch (error) {
       console.error("Chat error:", error);
@@ -444,8 +455,10 @@ const RagChatPage = () => {
         </div>
       );
       setElements(prev => [...prev, errorMessage]);
+      setTimeout(scrollToBottom, 10);
     } finally {
       setIsLoading(false);
+      setTimeout(scrollToBottom, 10);
     }
   };
 
@@ -529,7 +542,7 @@ const RagChatPage = () => {
             )}
             
             {/* Loading Indicator */}
-            {isLoading && <MessageSkeleton />}
+            {isLoading && <AISkeletonLoading />}
             
             <div ref={messagesEndRef} data-messages-end />
           </div>
@@ -546,6 +559,8 @@ const RagChatPage = () => {
           limitReached={false}
           uploading={false}
           user={null}
+          showAttachments={false}
+          showSuggestions={false}
         />
       </div>
     </div>

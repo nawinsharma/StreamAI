@@ -92,7 +92,6 @@ export async function POST(req: NextRequest) {
     }
 
     // Handle AI chat request (with or without attachments)
-    // Always pass chatId and userId to maintain conversation context
     const chatResponse = await handleAIChatRequest({
       messages: normalized,
       chatId: chatId, // This is crucial for context maintenance

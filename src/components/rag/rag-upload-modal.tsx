@@ -253,7 +253,7 @@ export function RagUploadModal({ open, onOpenChange, initialType }: RagUploadMod
       case 'pdf':
         return (
           <div
-            className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+            className={`relative border-2 border-dashed rounded-lg p-10 text-center transition-colors ${
               isDragging
                 ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
                 : 'border-gray-300 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500'
@@ -262,11 +262,11 @@ export function RagUploadModal({ open, onOpenChange, initialType }: RagUploadMod
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
           >
-            <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-            <p className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            <Upload className="mx-auto h-16 w-16 text-gray-400 mb-6" />
+            <p className="text-xl font-medium text-gray-900 dark:text-white mb-3">
               {isDragging ? 'Drop your PDF here' : 'Upload PDF File'}
             </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">
               Drag and drop your PDF file here, or click to browse
             </p>
             <Button 
@@ -274,6 +274,7 @@ export function RagUploadModal({ open, onOpenChange, initialType }: RagUploadMod
               variant="outline" 
               onClick={handleFileSelect}
               disabled={isLoading}
+              className="h-12 px-6 text-base"
             >
               Choose File
             </Button>
@@ -289,19 +290,20 @@ export function RagUploadModal({ open, onOpenChange, initialType }: RagUploadMod
 
       case 'website':
         return (
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="website-url">Website URL</Label>
+          <div className="space-y-6">
+            <div className="space-y-3">
+              <Label htmlFor="website-url" className="text-base font-medium">Website URL</Label>
               <Input
                 id="website-url"
                 type="url"
-                placeholder="https://example.com"
+                placeholder="https://nawin.xyz"
                 value={websiteUrl}
                 onChange={(e) => setWebsiteUrl(e.target.value)}
                 disabled={isLoading}
+                className="h-12 text-base"
               />
             </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
               Enter the URL of the website you want to scrape and index for RAG.
             </p>
           </div>
@@ -309,19 +311,20 @@ export function RagUploadModal({ open, onOpenChange, initialType }: RagUploadMod
 
       case 'text':
         return (
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="text-title">Title</Label>
+          <div className="space-y-6">
+            <div className="space-y-3">
+              <Label htmlFor="text-title" className="text-base font-medium">Title</Label>
               <Input
                 id="text-title"
                 placeholder="Enter a title for your text content"
                 value={textTitle}
                 onChange={(e) => setTextTitle(e.target.value)}
                 disabled={isLoading}
+                className="h-12 text-base"
               />
             </div>
-            <div>
-              <Label htmlFor="text-content">Content</Label>
+            <div className="space-y-3">
+              <Label htmlFor="text-content" className="text-base font-medium">Content</Label>
               <Textarea
                 id="text-content"
                 placeholder="Paste your text content here..."
@@ -329,6 +332,7 @@ export function RagUploadModal({ open, onOpenChange, initialType }: RagUploadMod
                 onChange={(e) => setTextContent(e.target.value)}
                 rows={8}
                 disabled={isLoading}
+                className="text-base resize-none"
               />
             </div>
           </div>
@@ -336,9 +340,9 @@ export function RagUploadModal({ open, onOpenChange, initialType }: RagUploadMod
 
       case 'youtube':
         return (
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="youtube-url">YouTube URL</Label>
+          <div className="space-y-6">
+            <div className="space-y-3">
+              <Label htmlFor="youtube-url" className="text-base font-medium">YouTube URL</Label>
               <Input
                 id="youtube-url"
                 type="url"
@@ -346,9 +350,10 @@ export function RagUploadModal({ open, onOpenChange, initialType }: RagUploadMod
                 value={youtubeUrl}
                 onChange={(e) => setYoutubeUrl(e.target.value)}
                 disabled={isLoading}
+                className="h-12 text-base"
               />
             </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
               Enter the URL of the YouTube video to extract and index its content.
             </p>
           </div>
@@ -364,23 +369,23 @@ export function RagUploadModal({ open, onOpenChange, initialType }: RagUploadMod
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center space-x-2">
-            <div className={`p-2 rounded-lg ${currentType.bgColor}`}>
-              <Icon className={`w-5 h-5 ${currentType.color}`} />
+      <DialogContent className="max-w-2xl p-8">
+        <DialogHeader className="pb-6">
+          <DialogTitle className="flex items-center space-x-3 text-xl">
+            <div className={`p-3 rounded-lg ${currentType.bgColor}`}>
+              <Icon className={`w-6 h-6 ${currentType.color}`} />
             </div>
             <span>{currentType.title}</span>
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-8">
           {/* Upload Form */}
           {renderUploadForm()}
 
           {/* Progress */}
           {isLoading && (
-            <div className="space-y-2">
+            <div className="space-y-3">
               <div className="flex items-center justify-between text-sm">
                 <span>Processing...</span>
                 <span>{uploadProgress}%</span>
@@ -395,7 +400,7 @@ export function RagUploadModal({ open, onOpenChange, initialType }: RagUploadMod
           )}
 
           {/* Actions */}
-          <div className="flex justify-end space-x-3">
+          <div className="flex justify-end space-x-3 pt-4">
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}

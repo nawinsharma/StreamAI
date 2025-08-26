@@ -25,30 +25,13 @@ export async function searchMemoriesAction(
     const { query, options } = request;
     const { limit = 10, threshold = 0.3 } = options;
 
-    console.log("Searching memories in Mem0:", {
-      query: query.substring(0, 100) + "...",
-      userId: session.user.id,
-      limit,
-      threshold,
-    });
-
     const response = (await mem0Client.search(query, {
       user_id: session.user.id,
       limit,
     })) as MemoryApiResponse[];
 
-    console.log(
-      "Raw memory search response:",
-      JSON.stringify(response, null, 2)
-    );
-
     const filteredResults: MemorySearchResult[] = response
       .filter((result: MemoryApiResponse) => {
-        console.log(
-          `Memory score: ${result.score}, threshold: ${threshold}, passes: ${
-            result.score >= threshold
-          }`
-        );
         return result.score >= threshold;
       })
       .map((result: MemoryApiResponse) => ({
@@ -58,13 +41,8 @@ export async function searchMemoriesAction(
         metadata: result.metadata,
       }));
 
-    console.log(
-      `Found ${filteredResults.length} relevant memories out of ${response.length} total memories`
-    );
-
     return { memories: filteredResults };
   } catch (error) {
-    console.error("Error searching memories:", error);
     return {
       memories: [],
       error: error instanceof Error ? error.message : "Failed to search memories",
