@@ -118,7 +118,7 @@ const SidebarFooterSection = () => {
 
   return (
     <div className="flex items-center gap-3 w-full">
-      <Link href={`/profile/${currentUser?.id}`} className="flex items-center gap-3 flex-1 min-w-0 group-data-[collapsible=icon]:flex-none">
+      <div className="flex items-center gap-3 flex-1 min-w-0 group-data-[collapsible=icon]:flex-none">
         <Avatar className="h-8 w-8">
           {imageSrc && !imageError ? (
             <Image
@@ -143,7 +143,7 @@ const SidebarFooterSection = () => {
             {currentUser?.email}
           </p>
         </div>
-      </Link>
+      </div>
       <div className="flex items-center gap-1">
             <Link href={GITHUB_URL} target="_blank" rel="noopener noreferrer">
               <Button

@@ -194,6 +194,83 @@ export async function getRagChat(chatId: string) {
   }
 }
 
+export async function getPublicRagChat(chatId: string) {
+  try {
+    const chat = await prisma.ragChat.findFirst({
+      where: {
+        id: chatId,
+        isPublic: true,
+      },
+      include: {
+        collection: true,
+        messages: {
+          orderBy: {
+            createdAt: 'asc',
+          },
+        },
+        user: {
+          select: {
+            name: true, // consider omitting even this if not shown
+          },
+        },
+      },
+    });
+
+    if (!chat) {
+      throw new Error("RAG chat not found or not public");
+    }
+    return { success: true, data: chat };
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message.includes("RAG chat not found")) {
+        return { success: false, error: "RAG chat not found or not public" };
+      }
+      if (error.message.includes('database') || error.message.includes('connection')) {
+        return { success: false, error: "Database connection error" };
+      }
+    }
+    
+    return { success: false, error: "Failed to get RAG chat" };
+  }
+}
+
+export async function toggleRagChatPublic(chatId: string) {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session?.user?.id) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    const chat = await prisma.ragChat.findFirst({
+      where: { id: chatId, userId: session.user.id },
+      select: { id: true, isPublic: true }
+    });
+
+    if (!chat) {
+      return { success: false, error: "RAG chat not found" };
+    }
+
+    const updated = await prisma.ragChat.update({
+      where: { id: chatId },
+      data: { isPublic: !chat.isPublic }
+    });
+    return { success: true, data: updated };
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message.includes("Unauthorized")) {
+        return { success: false, error: "Unauthorized access" };
+      }
+      if (error.message.includes("RAG chat not found")) {
+        return { success: false, error: "RAG chat not found" };
+      }
+    }
+    return { success: false, error: "Failed to toggle public status" };
+  }
+}
+
 export async function deleteRagChat(chatId: string) {
   try {
     

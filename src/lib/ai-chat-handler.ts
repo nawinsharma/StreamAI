@@ -107,8 +107,11 @@ function getLastUserMessage(messages: CoreMessage[]): string {
   }
   
   // Handle array content (for image messages)
-  const textContent = (lastUser.content as any[]).find((c: any) => c.type === "text");
-  return textContent?.text || "";
+  if (Array.isArray(lastUser.content)) {
+    const textContent = lastUser.content.find((c: any) => c.type === "text");
+    return (textContent as any)?.text || "";
+  }
+  return "";
 }
 
 /**

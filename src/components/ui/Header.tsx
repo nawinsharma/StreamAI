@@ -27,7 +27,11 @@ import { toast } from "sonner";
 import { Brain } from "lucide-react";
 import { useState } from "react";
 
-export function Header() {
+interface HeaderProps {
+  shareButton?: React.ReactNode;
+}
+
+export function Header({ shareButton }: HeaderProps = {}) {
   const router = useRouter();
   const user = useUser();
   const [showSignOutDialog, setShowSignOutDialog] = useState(false);
@@ -71,6 +75,12 @@ export function Header() {
 
           {/* Right side - Controls */}
           <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
+            {shareButton && (
+              <>
+                {shareButton}
+                <div className="w-px h-4 sm:h-6 bg-border/30"></div>
+              </>
+            )}
             <ThemeToggle />
             <div className="w-px h-4 sm:h-6 bg-border/30"></div>
             

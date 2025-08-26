@@ -5,6 +5,7 @@ import { AttachmentButton } from "@/components/ui/attachment-button";
 import { SuggestionQuestions } from "./suggestion-questions";
 import { User } from "@/types/api";
 import { DESIGN_TOKENS } from "@/lib/constants";
+import { Send } from "lucide-react";
 
 interface ChatInputProps {
   input: string;
@@ -107,9 +108,7 @@ export const ChatInput = React.memo(({
               className={`absolute right-2 bottom-2 ${DESIGN_TOKENS.BUTTON_SIZE} p-0`}
               disabled={isSubmitDisabled}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-              </svg>
+              <Send className="w-4 h-4" />
             </Button>
           </div>
         </form>

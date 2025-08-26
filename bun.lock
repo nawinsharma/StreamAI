@@ -2,7 +2,7 @@
   "lockfileVersion": 1,
   "workspaces": {
     "": {
-      "name": "multimodel-stream",
+      "name": "stream-ai",
       "dependencies": {
         "@ai-sdk/google": "^2.0.5",
         "@hookform/resolvers": "^5.2.1",

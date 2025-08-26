@@ -129,7 +129,7 @@ export default async function RootLayout({
               {children}
             </HomeLayout>
             <Analytics />
-            <Toaster position="top-right" richColors />
+            <Toaster position="bottom-right" richColors />
           </UserProviderWrapper>
         </ThemeProvider>
       </body>
