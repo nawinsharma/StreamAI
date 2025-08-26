@@ -121,7 +121,7 @@ export default function SignInForm() {
    return (
       <Card>
          <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Welcome back</CardTitle>
+            <CardTitle className="text-2xl">Welcome</CardTitle>
             <CardDescription>
                Enter your credentials to sign in to your account
             </CardDescription>

@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import UserProviderWrapper from "@/components/user-provider";
 import { getUser } from "@/lib/get-user";
 import HomeLayout from "@/components/layout/home-layout";
+import { Analytics } from "@vercel/analytics/next"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -39,6 +40,7 @@ export default async function RootLayout({
             <HomeLayout>
               {children}
             </HomeLayout>
+            <Analytics />
             <Toaster position="top-right" richColors />
           </UserProviderWrapper>
         </ThemeProvider>

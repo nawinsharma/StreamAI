@@ -17,6 +17,7 @@ import {
 import { useRagStore } from "@/stores/rag-store";
 import { toast } from "sonner";
 import { createRagCollection } from "@/app/actions/ragActions";
+import { useUser } from "@/context/UserContext";
 
 interface RagUploadModalProps {
   open: boolean;
@@ -28,6 +29,7 @@ type UploadType = 'pdf' | 'website' | 'text' | 'youtube';
 
 export function RagUploadModal({ open, onOpenChange, initialType }: RagUploadModalProps) {
   const router = useRouter();
+  const user = useUser();
   const [selectedType, setSelectedType] = useState<UploadType>('pdf');
   const [isDragging, setIsDragging] = useState(false);
   const [websiteUrl, setWebsiteUrl] = useState('');
@@ -99,6 +101,17 @@ export function RagUploadModal({ open, onOpenChange, initialType }: RagUploadMod
     const file = event.target.files?.[0];
     if (!file) return;
 
+    if (!user) {
+      toast.error("Please sign in to use this feature", {
+        description: "RAG uploads are only available for authenticated users.",
+        action: {
+          label: "Sign In",
+          onClick: () => router.push('/sign-in'),
+        },
+      });
+      return;
+    }
+
     if (file.type !== 'application/pdf') {
       toast.error('Please select a PDF file');
       return;
@@ -125,6 +138,16 @@ export function RagUploadModal({ open, onOpenChange, initialType }: RagUploadMod
     const file = files[0];
     
     if (!file) return;
+    if (!user) {
+      toast.error("Please sign in to use this feature", {
+        description: "RAG uploads are only available for authenticated users.",
+        action: {
+          label: "Sign In",
+          onClick: () => router.push('/sign-in'),
+        },
+      });
+      return;
+    }
     if (file.type !== 'application/pdf') {
       toast.error('Please drop a PDF file');
       return;
@@ -245,6 +268,16 @@ export function RagUploadModal({ open, onOpenChange, initialType }: RagUploadMod
   };
 
   const handleSubmit = () => {
+    if (!user) {
+      toast.error("Please sign in to use this feature", {
+        description: "RAG uploads are only available for authenticated users.",
+        action: {
+          label: "Sign In",
+          onClick: () => router.push('/sign-in'),
+        },
+      });
+      return;
+    }
     processUpload(selectedType);
   };
 
