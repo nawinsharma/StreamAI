@@ -70,6 +70,7 @@ export default function LoginDialog({ isOpen }: LoginDialogProps) {
                   window.location.replace(redirectUrl);
                } else {
                   window.location.replace("/");
+                  window.location.reload();
                }
             },
             onError: (ctx) => {
@@ -97,6 +98,7 @@ export default function LoginDialog({ isOpen }: LoginDialogProps) {
             window.location.replace(redirectUrl);
          } else {
             window.location.replace("/");
+            window.location.reload();
          }
       } catch {
          toast.error("Failed to sign in with Google")
@@ -127,6 +129,7 @@ export default function LoginDialog({ isOpen }: LoginDialogProps) {
                   window.location.replace(redirectUrl);
                } else {
                   window.location.replace("/");
+                  window.location.reload();
                }
             },
             onError: (ctx) => {
