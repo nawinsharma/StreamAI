@@ -27,9 +27,10 @@ const session = await auth.api.getSession({
           },
         },
       },
-      orderBy: {
-        updatedAt: "desc",
-      },
+      orderBy: [
+        { pinned: 'desc' },
+        { updatedAt: 'desc' }
+      ],
     });
     return { success: true, data: chats };
   } catch (error) {
@@ -129,6 +130,43 @@ export async function deleteChat(chatId: string) {
     return { success: false, error: "Failed to delete chat" };
   }
 } 
+
+export async function togglePinChat(chatId: string) {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers()
+    });
+
+    if (!session?.user?.id) {
+      throw new Error("Unauthorized");
+    }
+
+    const chat = await prisma.chat.findFirst({
+      where: { id: chatId, userId: session.user.id },
+      select: { id: true, pinned: true }
+    });
+
+    if (!chat) {
+      throw new Error("Chat not found");
+    }
+
+    const updated = await prisma.chat.update({
+      where: { id: chatId },
+      data: { pinned: !chat.pinned }
+    });
+    return { success: true, data: updated };
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message.includes("Unauthorized")) {
+        return { success: false, error: "Unauthorized access" };
+      }
+      if (error.message.includes("Chat not found")) {
+        return { success: false, error: "Chat not found" };
+      }
+    }
+    return { success: false, error: "Failed to toggle pin" };
+  }
+}
 
 export async function getChat(chatId: string) {
   try {
