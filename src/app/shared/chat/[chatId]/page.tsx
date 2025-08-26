@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import { getPublicChat } from "@/app/actions/chatActions";
 import { Header } from "@/components/ui/Header";
 import { Button } from "@/components/ui/button";
@@ -32,16 +31,23 @@ interface Chat {
 }
 
 export default function SharedChatPage({ params }: { params: Promise<{ chatId: string }> }) {
-  const resolvedParams = use(params);
-  const chatId = resolvedParams.chatId;
-  const router = useRouter();
+  const [chatId, setChatId] = useState<string>("");
   const user = useUser();
   
   const [chat, setChat] = useState<Chat | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Resolve params
   useEffect(() => {
+    params.then((resolvedParams) => {
+      setChatId(resolvedParams.chatId);
+    });
+  }, [params]);
+
+  useEffect(() => {
+    if (!chatId) return; // Don't fetch until chatId is resolved
+    
     const fetchChat = async () => {
       try {
         setLoading(true);
@@ -87,7 +93,7 @@ export default function SharedChatPage({ params }: { params: Promise<{ chatId: s
     if (user !== undefined) {
       fetchChat();
     }
-  }, [chatId, user, router]);
+  }, [chatId, user]);
 
   if (loading) {
     return (

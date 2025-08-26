@@ -11,6 +11,6 @@ CREATE INDEX "rag_chat_userId_idx" ON "public"."rag_chat"("userId");
 CREATE INDEX "rag_chat_isPublic_idx" ON "public"."rag_chat"("isPublic");
 
 -- CreateIndex (PostgreSQL partial index for true-public chats)
-CREATE INDEX CONCURRENTLY IF NOT EXISTS chat_is_public_true_idx
+CREATE INDEX IF NOT EXISTS "chat_is_public_true_idx"
 ON "public"."chat"(id)
 WHERE "isPublic" = true;

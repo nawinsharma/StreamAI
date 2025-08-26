@@ -219,15 +219,25 @@ export async function getPublicChat(chatId: string) {
         id: chatId,
         isPublic: true,
       },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        createdAt: true,
+        updatedAt: true,
         messages: {
           orderBy: {
             createdAt: "asc",
           },
+          select: {
+            id: true,
+            role: true,
+            content: true,
+            createdAt: true,
+          },
         },
         user: {
           select: {
-            name: true, // consider omitting even this if not shown
+            name: true,
           },
         },
       },
