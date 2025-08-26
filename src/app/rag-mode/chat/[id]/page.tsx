@@ -12,9 +12,10 @@ import { Actions, Action } from "@/components/ui/actions";
 import { Markdown } from "@/components/ui/markdown";
 import Link from "next/link";
 import { toast } from "sonner";
-import { createRagChat, addRagMessage, getRagCollections, getRagChatByCollection } from "@/app/actions/ragActions";
+import { createRagChat, addRagMessage, getRagCollections, getRagChatByCollection, toggleRagChatPublic } from "@/app/actions/ragActions";
 import { useRagStore } from "@/stores/rag-store";
 import { useScrollToBottom } from "@/components/use-scroll-to-bottom";
+import { ShareButton } from "@/components/ui/share-button";
 
 interface RagSource {
   content: string;
@@ -44,6 +45,7 @@ interface RagChatData {
     sourceUrl?: string | null;
   };
   messages: RagMessage[];
+  isPublic: boolean;
 }
 
 
@@ -61,6 +63,20 @@ const RagChatPage = () => {
   const [isInitializing, setIsInitializing] = useState(true);
   const [chatHistory, setChatHistory] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
   const [messagesContainerRef, messagesEndRef, scrollToBottom] = useScrollToBottom<HTMLDivElement>();
+
+  const handleTogglePublic = async (chatId: string) => {
+    try {
+      const result = await toggleRagChatPublic(chatId);
+      if (result.success && result.data) {
+        setChatData(prev => prev ? { ...prev, isPublic: result.data.isPublic } : null);
+      } else {
+        toast.error(result.error || "Failed to update chat visibility");
+      }
+    } catch (error) {
+      console.error("Error toggling RAG chat public status:", error);
+      toast.error("Failed to update chat visibility");
+    }
+  };
 
   // Load collections if not available
   useEffect(() => {
@@ -214,25 +230,26 @@ const RagChatPage = () => {
           // Use existing chat
           console.log('✅ Found existing chat:', existingChatResult.data.id);
           
-          const transformedData: RagChatData = {
-            id: existingChatResult.data.id,
-            title: existingChatResult.data.title,
-            collection: {
-              id: existingChatResult.data.collection.id,
-              name: existingChatResult.data.collection.name,
-              collectionName: existingChatResult.data.collection.collectionName,
-              type: existingChatResult.data.collection.type,
-              summary: existingChatResult.data.collection.summary,
-              sourceUrl: existingChatResult.data.collection.sourceUrl,
-            },
-            messages: existingChatResult.data.messages.map((msg: any) => ({
-              id: msg.id,
-              content: msg.content,
-              role: msg.role as 'user' | 'assistant',
-              sources: (msg.sources as unknown) as RagSource[] | undefined,
-              createdAt: msg.createdAt,
-            })),
-          };
+                      const transformedData: RagChatData = {
+              id: existingChatResult.data.id,
+              title: existingChatResult.data.title,
+              collection: {
+                id: existingChatResult.data.collection.id,
+                name: existingChatResult.data.collection.name,
+                collectionName: existingChatResult.data.collection.collectionName,
+                type: existingChatResult.data.collection.type,
+                summary: existingChatResult.data.collection.summary,
+                sourceUrl: existingChatResult.data.collection.sourceUrl,
+              },
+              messages: existingChatResult.data.messages.map((msg: any) => ({
+                id: msg.id,
+                content: msg.content,
+                role: msg.role as 'user' | 'assistant',
+                sources: (msg.sources as unknown) as RagSource[] | undefined,
+                createdAt: msg.createdAt,
+              })),
+              isPublic: existingChatResult.data.isPublic,
+            };
           
           setChatData(transformedData);
           loadMessages(transformedData.messages);
@@ -267,6 +284,7 @@ const RagChatPage = () => {
                 sources: (msg.sources as unknown) as RagSource[] | undefined,
                 createdAt: msg.createdAt,
               })),
+              isPublic: result.data.isPublic,
             };
             
             setChatData(transformedData);
@@ -497,6 +515,19 @@ const RagChatPage = () => {
 
   return (
     <div className="h-screen bg-background flex flex-col">
+      {/* Header */}
+      <Header 
+        shareButton={
+          chatData && (
+            <ShareButton
+              chatId={chatData.id}
+              isPublic={chatData.isPublic}
+              chatType="rag"
+              onTogglePublic={handleTogglePublic}
+            />
+          )
+        }
+      />
       
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-h-0">

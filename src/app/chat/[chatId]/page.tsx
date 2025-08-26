@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Header } from "@/components/ui/Header";
 import { useUser } from "@/context/UserContext";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getChat } from "@/app/actions/chatActions";
+import { getChat, toggleChatPublic } from "@/app/actions/chatActions";
 import { FilePreview } from "@/components/ui/file-preview";
 import { AttachmentButton } from "@/components/ui/attachment-button";
 import { ChatImage } from "@/components/ui/chat-image";
@@ -18,6 +18,7 @@ import { Actions, Action } from "@/components/ui/actions";
 import { Copy, ThumbsUp, ThumbsDown, RotateCcw, Send } from "lucide-react";
 import { WeatherCard, type WeatherPayload } from "@/components/ui/weather";
 import { Markdown } from "@/components/ui/markdown";
+import { ShareButton } from "@/components/ui/share-button";
 
 interface Message {
   id: string;
@@ -32,6 +33,7 @@ interface Chat {
   messages: Message[];
   createdAt: Date;
   updatedAt: Date;
+  isPublic: boolean;
 }
 
 interface AttachmentMeta {
@@ -116,6 +118,20 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
   const [pendingInitialMessage, setPendingInitialMessage] = useState<string | null>(null);
   const hasInitialized = useRef(false);
   const searchParams = useSearchParams();
+
+  const handleTogglePublic = async (chatId: string) => {
+    try {
+      const result = await toggleChatPublic(chatId);
+      if (result.success && result.data) {
+        setChat(prev => prev ? { ...prev, isPublic: result.data.isPublic } : null);
+      } else {
+        toast.error(result.error || "Failed to update chat visibility");
+      }
+    } catch (error) {
+      console.error("Error toggling chat public status:", error);
+      toast.error("Failed to update chat visibility");
+    }
+  };
 
   const onSubmit = useCallback(async (prompt: string) => {
     console.log("onSubmit called with prompt:", prompt);
@@ -318,7 +334,8 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
             createdAt: new Date(msg.createdAt),
           })),
           createdAt: chatData.createdAt,
-          updatedAt: chatData.updatedAt
+          updatedAt: chatData.updatedAt,
+          isPublic: chatData.isPublic
         };
         
         setChat(transformedChat);
@@ -440,7 +457,7 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
       hasInitialized.current = true;
       setIsNewChat(true);
       setLoading(false);
-      setChat({ id: chatId, title: initial.substring(0, 50) + (initial.length > 50 ? "..." : ""), messages: [], createdAt: new Date(), updatedAt: new Date() });
+      setChat({ id: chatId, title: initial.substring(0, 50) + (initial.length > 50 ? "..." : ""), messages: [], createdAt: new Date(), updatedAt: new Date(), isPublic: false });
       setPendingInitialMessage(initial);
     } else if (!hasInitialized.current) {
       hasInitialized.current = true;
@@ -552,7 +569,18 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
   return (
     <div className="h-screen bg-background flex flex-col">
       {/* Header */}
-      <Header />
+      <Header 
+        shareButton={
+          chat && (
+            <ShareButton
+              chatId={chat.id}
+              isPublic={chat.isPublic}
+              chatType="regular"
+              onTogglePublic={handleTogglePublic}
+            />
+          )
+        }
+      />
       
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-h-0">

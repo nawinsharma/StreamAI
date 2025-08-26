@@ -79,6 +79,7 @@ model Chat {
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   messages  Message[]
   pinned    Boolean   @default(false)
+  isPublic  Boolean   @default(false)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
@@ -135,6 +136,7 @@ model RagChat {
   userId       String
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   collectionId String
+  isPublic     Boolean       @default(false)
   collection   RagCollection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
   messages     RagMessage[]
   createdAt    DateTime      @default(now())
