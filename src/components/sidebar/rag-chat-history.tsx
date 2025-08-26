@@ -234,7 +234,7 @@ const RagChatHistory = ({ searchQuery }: RagChatHistoryProps) => {
         </SidebarGroupContent>
       </SidebarGroup>
 
-      <AlertDialog open={!!chatToDelete} onOpenChange={() => setChatToDelete(null)}>
+      <AlertDialog open={!!chatToDelete} onOpenChange={(open) => !open && setChatToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete RAG Chat</AlertDialogTitle>

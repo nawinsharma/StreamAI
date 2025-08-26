@@ -43,8 +43,21 @@ interface RagChatData {
   messages: RagMessage[];
   user: {
     name: string | null;
-    email: string;
   };
+}
+
+// Type guard to validate RagSource
+function isValidRagSource(obj: unknown): obj is RagSource {
+  return (
+    typeof obj === 'object' &&
+    obj !== null &&
+    typeof (obj as any).content === 'string'
+  );
+}
+
+// Type guard to validate RagSource array
+function isValidRagSourceArray(arr: unknown): arr is RagSource[] {
+  return Array.isArray(arr) && arr.every(isValidRagSource);
 }
 
 export default function SharedRagChatPage({ params }: { params: Promise<{ chatId: string }> }) {
@@ -65,16 +78,9 @@ export default function SharedRagChatPage({ params }: { params: Promise<{ chatId
         
         if (result.success && result.data) {
           const chat = result.data;
-          
-          console.log("Public RAG chat data:", {
-            chatOwnerEmail: chat.user.email,
-            currentUserEmail: user?.email,
-            isOwner: user && user.email === chat.user.email,
-            userLoaded: user !== undefined
-          });
-          
+     
           // If the current user is the owner of this chat, redirect them to their private chat page
-          if (user && user.email === chat.user.email) {
+          if (user && user.name === chat.user.name) {
             console.log("Redirecting RAG chat owner to private chat page");
             // Use push instead of replace to ensure proper navigation
             router.push(`/rag-mode/chat/${chatId}`);
@@ -96,7 +102,7 @@ export default function SharedRagChatPage({ params }: { params: Promise<{ chatId
               id: msg.id,
               content: msg.content,
               role: msg.role as 'user' | 'assistant',
-              sources: (msg.sources as unknown) as RagSource[] | undefined,
+              sources: msg.sources ? (isValidRagSourceArray(msg.sources) ? msg.sources : undefined) : undefined,
               createdAt: msg.createdAt,
             })),
             user: chat.user,
@@ -175,7 +181,7 @@ export default function SharedRagChatPage({ params }: { params: Promise<{ chatId
                 <h1 className="text-lg font-semibold">{chatData.title}</h1>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <User className="w-3 h-3" />
-                  <span>Shared by {chatData.user.name || chatData.user.email}</span>
+                  <span>Shared by {chatData.user.name || "Anonymous"}</span>
                   <span>•</span>
                   <span>Collection: {chatData.collection.name}</span>
                 </div>
@@ -200,9 +206,9 @@ export default function SharedRagChatPage({ params }: { params: Promise<{ chatId
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
                   No messages yet
                 </h3>
-                                  <p className="text-gray-500 dark:text-gray-400">
-                    This shared chat about &ldquo;{chatData.collection.name}&rdquo; doesn&apos;t have any messages yet.
-                  </p>
+                <p className="text-gray-500 dark:text-gray-400">
+                  {`This shared chat about "${chatData.collection.name}" doesn't have any messages yet.`}
+                </p>
               </div>
             </div>
           ) : (

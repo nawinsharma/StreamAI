@@ -83,6 +83,8 @@ model Chat {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
+  @@index([userId, pinned, updatedAt])
+  @@index([isPublic])
   @@map("chat")
 }
 
@@ -142,6 +144,8 @@ model RagChat {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
+  @@index([userId])
+  @@index([isPublic])
   @@map("rag_chat")
 }
 

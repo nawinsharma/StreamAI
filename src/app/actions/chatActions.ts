@@ -227,8 +227,7 @@ export async function getPublicChat(chatId: string) {
         },
         user: {
           select: {
-            name: true,
-            email: true,
+            name: true, // consider omitting even this if not shown
           },
         },
       },

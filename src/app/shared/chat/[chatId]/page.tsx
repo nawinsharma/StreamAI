@@ -28,7 +28,6 @@ interface Chat {
   updatedAt: Date;
   user: {
     name: string | null;
-    email: string;
   };
 }
 
@@ -52,19 +51,10 @@ export default function SharedChatPage({ params }: { params: Promise<{ chatId: s
           const chatData = result.data;
           
           console.log("Public chat data:", {
-            chatOwnerEmail: chatData.user.email,
+            chatOwnerName: chatData.user.name,
             currentUserEmail: user?.email,
-            isOwner: user && user.email === chatData.user.email,
             userLoaded: user !== undefined
           });
-          
-          // If the current user is the owner of this chat, redirect them to their private chat page
-          if (user && user.email === chatData.user.email) {
-            console.log("Redirecting owner to private chat page");
-            // Use push instead of replace to ensure proper navigation
-            router.push(`/chat/${chatId}`);
-            return;
-          }
           
           const transformedChat: Chat = {
             id: chatData.id,
@@ -93,12 +83,10 @@ export default function SharedChatPage({ params }: { params: Promise<{ chatId: s
       }
     };
 
-    // Wait a bit for user context to load, then fetch
-    const timer = setTimeout(() => {
+    // Only fetch when user context is defined (loaded or null)
+    if (user !== undefined) {
       fetchChat();
-    }, 100);
-
-    return () => clearTimeout(timer);
+    }
   }, [chatId, user, router]);
 
   if (loading) {
@@ -159,7 +147,7 @@ export default function SharedChatPage({ params }: { params: Promise<{ chatId: s
                 <h1 className="text-lg font-semibold">{chat.title}</h1>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <User className="w-3 h-3" />
-                  <span>Shared by {chat.user.name || chat.user.email}</span>
+                  <span>Shared by {chat.user.name || "Anonymous"}</span>
                 </div>
               </div>
             </div>

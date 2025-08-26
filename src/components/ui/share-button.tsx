@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Share2 } from "lucide-react";
+import { Share2, Copy, Check } from "lucide-react";
 import { ShareDialog } from "./share-dialog";
 import { toast } from "sonner";
 
@@ -23,6 +23,7 @@ export function ShareButton({
 }: ShareButtonProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   // Map to actual route segment names
   const pathSegment = chatType === "regular" ? "chat" : "rag";
@@ -41,17 +42,45 @@ export function ShareButton({
     }
   };
 
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(chatUrl);
+      setCopied(true);
+      toast.success("Link copied to clipboard!");
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      toast.error("Failed to copy link");
+    }
+  };
+
   return (
     <>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => setIsDialogOpen(true)}
-        className={className}
-        title={isPublic ? "Manage sharing" : "Share chat"}
-      >
-        <Share2 className="w-4 h-4" />
-      </Button>
+      <div className="flex items-center gap-1">
+        {isPublic && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleCopyLink}
+            className={className}
+            title="Copy link to clipboard"
+          >
+            {copied ? (
+              <Check className="w-4 h-4" />
+            ) : (
+              <Copy className="w-4 h-4" />
+            )}
+          </Button>
+        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsDialogOpen(true)}
+          className={className}
+          title={isPublic ? "Manage sharing" : "Share chat"}
+        >
+          <Share2 className="w-4 h-4" />
+        </Button>
+      </div>
 
       <ShareDialog
         isOpen={isDialogOpen}

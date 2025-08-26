@@ -48,8 +48,18 @@ export function ShareDialog({
       console.log("Share dialog: Starting share process");
       await onShare();
       console.log("Share dialog: Share process completed");
-      // Show the opposite of current state since the toggle just happened
-      toast.success(isPublic ? "Chat is now private!" : "Chat is now public!");
+      
+      // If we just made the chat public, automatically copy the URL
+      if (!isPublic) {
+        try {
+          await navigator.clipboard.writeText(chatUrl);
+          toast.success("Chat is now public! Link copied to clipboard.");
+        } catch (error) {
+          toast.success("Chat is now public!");
+        }
+      } else {
+        toast.success("Chat is now private!");
+      }
     } catch (error) {
       console.error("Share dialog: Error during share process", error);
       toast.error("Failed to update chat visibility");
@@ -57,7 +67,12 @@ export function ShareDialog({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

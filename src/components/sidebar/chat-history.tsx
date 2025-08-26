@@ -71,7 +71,21 @@ const ChatHistory = ({ searchQuery }: ChatHistoryProps) => {
         setIsLoading(true);
         const result = await getChatsForUser({ searchQuery: searchQuery ? String(searchQuery) : null });
         if (result.success && result.data) {
-          setChats(result.data as unknown as Chat[]);
+          // Transform the Prisma data to match our Chat interface
+          const transformedChats: Chat[] = result.data.map((chat: any) => ({
+            id: chat.id,
+            title: chat.title,
+            messages: chat.messages.map((msg: any) => ({
+              id: msg.id,
+              role: msg.role,
+              content: msg.content,
+              createdAt: msg.createdAt,
+            })),
+            pinned: chat.pinned || false,
+            createdAt: chat.createdAt,
+            updatedAt: chat.updatedAt,
+          }));
+          setChats(transformedChats);
         } else {
           setChats([]);
         }
@@ -126,7 +140,7 @@ const ChatHistory = ({ searchQuery }: ChatHistoryProps) => {
             if (c.id === chatId) {
               return { 
                 ...c, 
-                pinned: (res.data as any).pinned,
+                pinned: res.data?.pinned || false,
                 updatedAt: now
               };
             }
