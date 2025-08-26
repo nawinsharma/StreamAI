@@ -145,8 +145,6 @@ const SidebarFooterSection = () => {
         </div>
       </Link>
       <div className="flex items-center gap-1">
-        <Tooltip>
-          <TooltipTrigger asChild>
             <Link href={GITHUB_URL} target="_blank" rel="noopener noreferrer">
               <Button
                 variant="ghost"
@@ -156,12 +154,6 @@ const SidebarFooterSection = () => {
                 <Github className="h-4 w-4" />
               </Button>
             </Link>
-          </TooltipTrigger>
-          <TooltipContent side="right">
-            <p>View on GitHub</p>
-          </TooltipContent>
-        </Tooltip>
-        
         <AlertDialog open={showSignOutDialog} onOpenChange={setShowSignOutDialog}>
           <AlertDialogTrigger asChild>
             <div>
@@ -176,7 +168,7 @@ const SidebarFooterSection = () => {
                     <LogOut className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent side="right">
+                <TooltipContent side="right" className="bg-purple-600 text-white border-purple-700">
                   <p>Sign out</p>
                 </TooltipContent>
               </Tooltip>

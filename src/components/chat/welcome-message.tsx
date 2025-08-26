@@ -1,24 +1,109 @@
-import React from "react";
-// import { QuickActions } from "./quick-actions";
+import React, { useState, useMemo, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import { suggestionTabGroups } from "@/data/suggestions";
+import { Sparkles, Compass, Code, GraduationCap } from "lucide-react";
 
 interface WelcomeMessageProps {
   userName: string;
+  onSuggestionClick?: (question: string, shouldAutoSubmit?: boolean) => void;
+  hasInput?: boolean;
 }
 
-export const WelcomeMessage = React.memo(({ userName }: WelcomeMessageProps) => {
-  return (
-    // <div className="h-full flex items-center justify-center px-6">
-    //   <div className="text-center max-w-2xl mx-auto">
-    //     <h1 className="text-3xl font-bold">Welcome {userName}</h1>
+export const WelcomeMessage = React.memo(({ userName, onSuggestionClick, hasInput }: WelcomeMessageProps) => {
+  const tabs = useMemo(() => Object.keys(suggestionTabGroups), []);
+  const [activeTab, setActiveTab] = useState<string>(tabs[0] ?? "Create");
 
-    //     {/* Quick Actions */}
-    //     {/* <QuickActions onActionClick={onActionClick} /> */}
-    //   </div>
-    // </div>
-    <div>
-      <div className="text-center max-w-2xl mx-auto py-10">
-        <h1 className="text-3xl font-bold">Welcome {userName} !</h1>
+  const questions = suggestionTabGroups[activeTab] ?? [];
+
+  const handleClick = useCallback((q: string) => {
+    onSuggestionClick?.(q, false);
+  }, [onSuggestionClick]);
+
+  const getTabIcon = (tabName: string) => {
+    switch (tabName) {
+      case "Create":
+        return <Sparkles className="w-4 h-4" />;
+      case "Explore":
+        return <Compass className="w-4 h-4" />;
+      case "Code":
+        return <Code className="w-4 h-4" />;
+      case "Learn":
+        return <GraduationCap className="w-4 h-4" />;
+      default:
+        return null;
+    }
+  };
+
+  // Hide everything if there's input
+  if (hasInput) {
+    return null;
+  }
+
+  return (
+    <div className="h-full flex flex-col items-center justify-start pt-20 px-6 relative overflow-hidden">
+      <div className="max-w-4xl mx-auto text-center relative z-10">
+        {/* Welcome Message */}
+        <h1 className="text-4xl font-bold mb-12 text-foreground">
+          How can I help you, {userName}?
+        </h1>
+
+        <div className="relative mb-10">
+          <div className="inline-flex items-center bg-muted/30 rounded-xl p-1 border border-border/50 shadow-sm backdrop-blur-sm">
+            {tabs.map((tab, _index) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`relative px-6 py-2 rounded-lg font-medium transition-all duration-300 ease-out flex items-center gap-2 cursor-pointer ${
+                  activeTab === tab
+                    ? "bg-background text-foreground shadow-md transform scale-105"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                }`}
+              >
+                {activeTab === tab && (
+                  <div className="absolute inset-0 bg-purple-100 dark:bg-purple-900/30 rounded-lg" />
+                )}
+                <span className="relative z-10">{getTabIcon(tab)}</span>
+                <span className="relative z-10">{tab}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-2xl mx-auto">
+          {questions.map((question, idx) => (
+            <div
+              key={`${activeTab}-${idx}`}
+              className="group relative"
+            >
+                  <button
+                  onClick={() => handleClick(question)}
+                  className="w-full p-4 text-left bg-card border border-border/50 rounded-lg hover:border-purple-300 hover:shadow-md hover:shadow-purple-500/20 transition-all duration-300 ease-out group-hover:scale-[1.01] group-hover:-translate-y-0.5 cursor-pointer relative"
+                >
+                  {/* Content */}
+                  <div className="relative z-10">
+                    <div className="flex items-start gap-2">
+                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-purple-600 flex items-center justify-center text-white text-xs font-bold">
+                        {idx + 1}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-foreground text-sm leading-relaxed group-hover:text-purple-700 dark:group-hover:text-purple-300 transition-colors duration-200">
+                          {question}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="absolute bottom-2 right-2 opacity-60 group-hover:opacity-100 transition-opacity duration-300">
+                      <svg className="w-4 h-4 text-muted-foreground group-hover:text-purple-600 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  </div>
+                </button>
+            </div>
+          ))}
+        </div>
       </div>
+      <div className="absolute top-32 left-10 w-32 h-32 bg-purple-100 dark:bg-purple-900/20 rounded-full blur-3xl" />
+      <div className="absolute bottom-32 right-10 w-40 h-40 bg-blue-100 dark:bg-blue-900/20 rounded-full blur-3xl" />
     </div>
   );
 });

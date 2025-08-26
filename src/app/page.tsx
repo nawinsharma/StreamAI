@@ -39,6 +39,12 @@ const ChatContent = React.memo(() => {
       setTimeout(() => {
         onSubmit(question);
       }, 50);
+    } else {
+      // Focus the input after setting the value
+      setTimeout(() => {
+        const textarea = document.querySelector('textarea[placeholder*="message"]') as HTMLTextAreaElement;
+        textarea?.focus();
+      }, 0);
     }
   }, [setInput, onSubmit]);
 
@@ -117,7 +123,9 @@ const ChatContent = React.memo(() => {
             /* Welcome Message - Only show when no interaction */
             <Suspense fallback={<WelcomeSkeleton />}>
               <WelcomeMessage 
-                userName={user?.name || user?.email || "User"} 
+                userName={user?.name || user?.email || "User"}
+                onSuggestionClick={handleSuggestionClick}
+                hasInput={input.trim().length > 0}
               />
             </Suspense>
           )}
