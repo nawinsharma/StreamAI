@@ -15,7 +15,7 @@ import { FilePreview } from "@/components/ui/file-preview";
 import { AttachmentButton } from "@/components/ui/attachment-button";
 import { ChatImage } from "@/components/ui/chat-image";
 import { Actions, Action } from "@/components/ui/actions";
-import { Copy, ThumbsUp, ThumbsDown, RotateCcw } from "lucide-react";
+import { Copy, ThumbsUp, ThumbsDown, RotateCcw, Send } from "lucide-react";
 import { WeatherCard, type WeatherPayload } from "@/components/ui/weather";
 import { Markdown } from "@/components/ui/markdown";
 
@@ -641,9 +641,8 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
                 onClick={() => onSubmit(input.trim())}
                 disabled={!input.trim() || isLoading}
                 size="sm"
-                className="h-[60px] px-6"
               >
-                Send
+                <Send className="w-7 h-7" />
               </Button>
             </div>
           </div>
