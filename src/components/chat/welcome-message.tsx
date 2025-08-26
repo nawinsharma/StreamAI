@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useCallback } from "react";
-import { Button } from "@/components/ui/button";
 import { suggestionTabGroups } from "@/data/suggestions";
 import { Sparkles, Compass, Code, GraduationCap } from "lucide-react";
 
@@ -40,20 +39,20 @@ export const WelcomeMessage = React.memo(({ userName, onSuggestionClick, hasInpu
   }
 
   return (
-    <div className="h-full flex flex-col items-center justify-start pt-20 px-6 relative overflow-hidden">
+    <div className="min-h-screen flex flex-col items-center justify-start pt-20 px-6 relative overflow-y-auto pb-56">
       <div className="max-w-4xl mx-auto text-center relative z-10">
         {/* Welcome Message */}
         <h1 className="text-4xl font-bold mb-12 text-foreground">
           How can I help you, {userName}?
         </h1>
 
-        <div className="relative mb-10">
-          <div className="inline-flex items-center bg-muted/30 rounded-xl p-1 border border-border/50 shadow-sm backdrop-blur-sm">
-            {tabs.map((tab, _index) => (
+        <div className="relative mb-6">
+          <div className="inline-flex items-center bg-muted/30 rounded-xl p-1 border border-border/50 shadow-sm backdrop-blur-sm overflow-x-auto gap-1 sm:gap-2">
+            {tabs.map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`relative px-6 py-2 rounded-lg font-medium transition-all duration-300 ease-out flex items-center gap-2 cursor-pointer ${
+                className={`relative px-3 sm:px-6 py-2 rounded-lg font-medium transition-all duration-300 ease-out flex items-center gap-1 sm:gap-2 cursor-pointer ${
                   activeTab === tab
                     ? "bg-background text-foreground shadow-md transform scale-105"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -63,13 +62,13 @@ export const WelcomeMessage = React.memo(({ userName, onSuggestionClick, hasInpu
                   <div className="absolute inset-0 bg-purple-100 dark:bg-purple-900/30 rounded-lg" />
                 )}
                 <span className="relative z-10">{getTabIcon(tab)}</span>
-                <span className="relative z-10">{tab}</span>
+                <span className="relative z-10 hidden sm:inline">{tab}</span>
               </button>
             ))}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-2xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-2xl mx-auto max-h-none md:max-h-[60vh] overflow-visible md:overflow-y-auto pr-1">
           {questions.map((question, idx) => (
             <div
               key={`${activeTab}-${idx}`}
@@ -86,7 +85,7 @@ export const WelcomeMessage = React.memo(({ userName, onSuggestionClick, hasInpu
                         {idx + 1}
                       </div>
                       <div className="flex-1">
-                        <p className="text-foreground text-sm leading-relaxed group-hover:text-purple-700 dark:group-hover:text-purple-300 transition-colors duration-200">
+                        <p className="text-foreground text-xs sm:text-sm leading-relaxed group-hover:text-purple-700 dark:group-hover:text-purple-300 transition-colors duration-200">
                           {question}
                         </p>
                       </div>

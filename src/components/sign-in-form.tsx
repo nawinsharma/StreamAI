@@ -61,6 +61,7 @@ export default function SignInForm() {
                router.push(redirectUrl);
             } else {
                router.push("/");
+               router.refresh();
             }
          },
          onError: (ctx) => {
@@ -81,6 +82,7 @@ export default function SignInForm() {
             router.push(redirectUrl);
          } else {
             router.push("/");
+            router.refresh();
          }
       } catch {
          toast.error("Failed to sign in with Google");
@@ -107,6 +109,7 @@ export default function SignInForm() {
                   router.push(redirectUrl);
                } else {
                   router.push("/");
+                  router.refresh();
                }
             },
             onError: (ctx) => {
