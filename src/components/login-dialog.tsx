@@ -24,7 +24,7 @@ import { authClient } from "@/lib/auth-client"
 import { signInFormSchema } from "@/lib/auth-schema"
 import { processPendingData } from "@/lib/pending-messages"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useRouter } from "next/navigation"
+// import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
@@ -36,7 +36,7 @@ interface LoginDialogProps {
 }
 
 export default function LoginDialog({ isOpen }: LoginDialogProps) {
-   const router = useRouter()
+   // const router = useRouter()
    const [isLoading, setIsLoading] = useState(false)
 
    const form = useForm<z.infer<typeof signInFormSchema>>({
@@ -62,15 +62,14 @@ export default function LoginDialog({ isOpen }: LoginDialogProps) {
             onSuccess: async () => {
                form.reset()
                toast.success("Successfully signed in!")
-               
                console.log('Login dialog sign-in successful, processing pending data...');
                // Process pending data after successful sign-in
                const redirectUrl = await processPendingData();
                console.log('Redirect URL:', redirectUrl);
                if (redirectUrl) {
-                  router.push(redirectUrl);
+                  window.location.replace(redirectUrl);
                } else {
-                  window.location.reload(); // Force reload to update user context
+                  window.location.replace("/");
                }
             },
             onError: (ctx) => {
@@ -95,9 +94,9 @@ export default function LoginDialog({ isOpen }: LoginDialogProps) {
          const redirectUrl = await processPendingData();
          console.log('Redirect URL:', redirectUrl);
          if (redirectUrl) {
-            router.push(redirectUrl);
+            window.location.replace(redirectUrl);
          } else {
-            window.location.reload(); // Force reload to update user context
+            window.location.replace("/");
          }
       } catch {
          toast.error("Failed to sign in with Google")
@@ -125,9 +124,9 @@ export default function LoginDialog({ isOpen }: LoginDialogProps) {
                const redirectUrl = await processPendingData();
                console.log('Redirect URL:', redirectUrl);
                if (redirectUrl) {
-                  router.push(redirectUrl);
+                  window.location.replace(redirectUrl);
                } else {
-                  window.location.reload(); // Force reload to update user context
+                  window.location.replace("/");
                }
             },
             onError: (ctx) => {

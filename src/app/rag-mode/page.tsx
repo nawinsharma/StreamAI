@@ -128,7 +128,7 @@ const RagDashboard = () => {
             RAG Knowledge Center
           </h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">
-            Chat with your documents, websites, and content
+            Chat with your documents, websites, and youtube videos
           </p>
         </div>
 

@@ -60,7 +60,7 @@ export const clearPendingData = () => {
  * Creates a new chat and sends the first pending message
  */
 export const processPendingData = async (): Promise<string | null> => {
-  console.log('🔍 Processing pending data...');
+  console.log(' Processing pending data...');
   
   const pendingMessages = getPendingMessages();
   const pendingFiles = getPendingFiles();
@@ -78,16 +78,16 @@ export const processPendingData = async (): Promise<string | null> => {
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     // Create a new chat using server action
-    console.log('🔍 Creating new chat via server action...');
+    console.log('creating new chat via server action...');
     const chatResult = await createChat("New Chat");
     
     if (!chatResult.success) {
-      console.error('❌ Failed to create chat:', chatResult.error);
+      console.error('failed to create chat:', chatResult.error);
       return null;
     }
     
     const chatId = chatResult.data?.id;
-    console.log('✅ Created chat with ID:', chatId);
+    console.log('created chat with ID:', chatId);
     
     // Clear pending data
     clearPendingData();
@@ -96,19 +96,19 @@ export const processPendingData = async (): Promise<string | null> => {
     if (pendingMessages.length > 0) {
       const firstMessage = pendingMessages[0];
       const redirectUrl = `/chat/${chatId}?message=${encodeURIComponent(firstMessage.content)}`;
-      console.log('Redirecting to:', redirectUrl);
+      console.log('redirecting to:', redirectUrl);
       return redirectUrl;
     }
     
     // If there are only pending files, redirect to chat
     if (pendingFiles.length > 0) {
       const redirectUrl = `/chat/${chatId}`;
-      console.log('Redirecting to:', redirectUrl);
+      console.log('redirecting to:', redirectUrl);
       return redirectUrl;
     }
     
     const redirectUrl = `/chat/${chatId}`;
-    console.log('Redirecting to:', redirectUrl);
+    console.log('redirecting to:', redirectUrl);
     return redirectUrl;
   } catch (error) {
     console.error('❌ Error processing pending data:', error);
