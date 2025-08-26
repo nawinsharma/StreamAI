@@ -14,7 +14,7 @@ export interface CityParseResponse {
 export async function parseCityFromText(text: string): Promise<CityParseResponse> {
   try {
     const result = await streamText({
-      model: google("gemini-2.5-flash") as any,
+      model: google("gemini-2.5-flash"),
       messages: [
         {
           role: "system",

@@ -1,6 +1,7 @@
 "use server";
 
 import prisma from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 
@@ -56,7 +57,12 @@ export async function createRagChat(collectionId: string, title: string) {
   }
 }
 
-export async function createRagMessage(chatId: string, content: string, role: 'user' | 'assistant', sources?: any[]) {
+export async function createRagMessage(
+  chatId: string,
+  content: string,
+  role: 'user' | 'assistant',
+  sources?: Prisma.InputJsonValue
+) {
   try {
     console.log('Creating RAG message - Request started', { chatId, role, contentLength: content.length });
     
@@ -84,7 +90,7 @@ export async function createRagMessage(chatId: string, content: string, role: 'u
       data: {
         content,
         role,
-        sources: sources ? sources : undefined,
+        sources: sources ?? undefined,
         chatId,
       },
     });

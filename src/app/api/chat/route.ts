@@ -13,13 +13,13 @@ import {
 /**
  * Extracts text content from a message, handling both string and array formats
  */
-function extractTextFromMessage(message: any): string {
+function extractTextFromMessage(message: { content: string | Array<{ type: string; text?: string }> }): string {
   if (typeof message.content === "string") {
     return message.content;
   }
   
   if (Array.isArray(message.content)) {
-    const textContent = message.content.find((c: any) => c.type === "text");
+    const textContent = message.content.find((c) => c.type === "text");
     return textContent?.text || "";
   }
   

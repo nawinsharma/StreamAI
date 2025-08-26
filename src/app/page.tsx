@@ -118,7 +118,6 @@ const ChatContent = React.memo(() => {
             <Suspense fallback={<WelcomeSkeleton />}>
               <WelcomeMessage 
                 userName={user?.name || user?.email || "User"} 
-                onActionClick={handleSuggestionClick} 
               />
             </Suspense>
           )}
@@ -133,9 +132,7 @@ const ChatContent = React.memo(() => {
             onFileSelect={handleFileSelect}
             isLoading={isLoading}
             hasInteracted={hasInteracted}
-            limitReached={false}
             uploading={uploading}
-            user={user}
           />
         </ErrorBoundary>
       </div>

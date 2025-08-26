@@ -121,11 +121,11 @@ export async function uploadAnyToCloudinary(params: {
     return {
       public_id: result.public_id,
       secure_url: result.secure_url,
-      format: (result as any).format,
-      width: (result as any).width,
-      height: (result as any).height,
-      resource_type: (result as any).resource_type,
-      original_filename: (result as any).original_filename,
+      format: result.format as string,
+      width: (result as { width?: number }).width as number,
+      height: (result as { height?: number }).height as number,
+      resource_type: (result as { resource_type: string }).resource_type,
+      original_filename: (result as { original_filename?: string }).original_filename,
     };
   } catch (error) {
     console.error('Error uploading (any) to Cloudinary:', error);

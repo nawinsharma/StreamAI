@@ -3,7 +3,7 @@ import { getWeather } from "./weather";
 
 export interface EnhancedWeatherResponse {
   success: boolean;
-  data?: any;
+  data?: unknown;
   error?: string;
   parsedCity?: string;
 }

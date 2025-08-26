@@ -3,10 +3,9 @@ import React from "react";
 
 interface WelcomeMessageProps {
   userName: string;
-  onActionClick?: (action: string, shouldAutoSubmit: boolean) => void;
 }
 
-export const WelcomeMessage = React.memo(({ userName, onActionClick }: WelcomeMessageProps) => {
+export const WelcomeMessage = React.memo(({ userName }: WelcomeMessageProps) => {
   return (
     // <div className="h-full flex items-center justify-center px-6">
     //   <div className="text-center max-w-2xl mx-auto">

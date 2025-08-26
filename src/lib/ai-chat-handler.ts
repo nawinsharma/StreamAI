@@ -28,8 +28,8 @@ export interface ChatResponse {
 /**
  * Normalizes incoming messages to CoreMessage format
  */
-export function normalizeMessages(body: any): CoreMessage[] | null {
-  const { messages, prompt } = body ?? {};
+export function normalizeMessages(body: unknown): CoreMessage[] | null {
+  const { messages, prompt } = (body as Record<string, unknown>) ?? {};
   
   if (Array.isArray(messages)) {
     const out = messages
@@ -71,20 +71,20 @@ export function createSystemMessage(): CoreMessage {
 /**
  * Converts messages to UIMessage format for AI SDK
  */
-function convertToUIMessages(messages: CoreMessage[]): any[] {
+function convertToUIMessages(messages: CoreMessage[]): Array<{ role: "user" | "assistant" | "system"; parts: Array<{ type: "text" | "image"; text?: string; image?: string }> }> {
   return messages.map((message) => {
     if (typeof message.content === "string") {
       return {
-        role: message.role,
-        parts: [{ type: "text", text: message.content }]
+        role: message.role as "user" | "assistant" | "system",
+        parts: [{ type: "text" as const, text: message.content }]
       };
     } else {
       // Handle array content (for image messages)
       return {
-        role: message.role,
-        parts: message.content.map((part: any) => {
+        role: message.role as "user" | "assistant" | "system",
+        parts: (message.content as Array<{ type: string; text?: string; image_url?: { url?: string } }>).map((part) => {
           if (part.type === "text") {
-            return { type: "text", text: part.text || "" };
+            return { type: "text" as const, text: part.text || "" };
           } else if (part.type === "image_url") {
             return { type: "image" as const, image: part.image_url?.url };
           }
@@ -127,7 +127,7 @@ async function getConversationHistory(chatId: string): Promise<CoreMessage[]> {
 
     console.log(`[Context] Fetched ${messages.length} messages for chat ${chatId}`);
     
-    return messages.map((msg: any) => ({
+    return messages.map((msg: { role: string; content: string }) => ({
       role: msg.role as "user" | "assistant",
       content: msg.content,
     }));
@@ -203,17 +203,12 @@ export async function handleAIChatRequest(
     const imageMessage: CoreMessage = {
       role: "user",
       content: [
-        {
-          type: "image_url" as any,
-          image_url: {
-            url: request.attachmentMeta.url,
-          },
-        },
+        { type: "image", image: request.attachmentMeta.url },
         {
           type: "text",
           text: getLastUserMessage(request.messages) || "What do you see in this image?",
         },
-      ] as any,
+      ],
     };
 
     // Include conversation history + current image message
@@ -246,10 +241,6 @@ export async function handleAIChatRequest(
     messagesToSend = [enhancedSystem, ...conversationHistory, ...request.messages];
   }
 
-  // Convert to UIMessage format and then to ModelMessage format
-  const uiMessages = convertToUIMessages(messagesToSend);
-  const modelMessages = convertToModelMessages(uiMessages);
-
   console.log(`[Context] Sending ${messagesToSend.length} messages to AI model (${conversationHistory.length} from history + ${request.messages.length} current + memory context: ${memoryContext ? 'yes' : 'no'})`);
 
   // Use vision model for images, regular model for text
@@ -257,8 +248,8 @@ export async function handleAIChatRequest(
 
   try {
     const result = await streamText({
-      model: google(modelName) as any,
-      messages: modelMessages,
+      model: google(modelName),
+      messages: messagesToSend,
       tools: {
         weather: {
           description: 'Get current weather information for a city mentioned in the user\'s message',
@@ -268,10 +259,7 @@ export async function handleAIChatRequest(
           execute: async ({ userInput }: { userInput: string }) => {
             const result = await getEnhancedWeather(userInput);
             if (result.success) {
-              return {
-                ...result.data,
-                parsedCity: result.parsedCity
-              };
+              return result.data as unknown;
             } else {
               throw new Error(result.error || "Failed to get weather information");
             }

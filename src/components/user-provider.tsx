@@ -37,8 +37,8 @@ export default function UserProviderWrapper({ children, initialUser }: UserProvi
          console.error("Error fetching user session:", error);
          // Don't set user to null on session fetch errors to avoid flickering
          // Only set to null if we get a clear "no session" response
-         if (error && typeof error === 'object' && 'response' in error) {
-            const response = (error as any).response;
+         if (error && typeof error === 'object' && 'response' in (error as Record<string, unknown>)) {
+            const response = (error as { response?: { status?: number } }).response;
             if (response?.status === 401 || response?.status === 403) {
                setUser(null);
             }
@@ -74,8 +74,8 @@ export default function UserProviderWrapper({ children, initialUser }: UserProvi
          } catch (error) {
             console.error("Error checking auth state:", error);
             // If we get rate limited, back off the checking
-            if (error && typeof error === 'object' && 'response' in error) {
-               const response = (error as any).response;
+            if (error && typeof error === 'object' && 'response' in (error as Record<string, unknown>)) {
+               const response = (error as { response?: { status?: number } }).response;
                if (response?.status === 429) {
                   console.log("Rate limited, backing off session checks");
                   // Clear the interval to stop aggressive checking

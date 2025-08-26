@@ -556,9 +556,7 @@ const RagChatPage = () => {
           onFileSelect={async () => {}} // No file upload in RAG mode
           isLoading={isLoading}
           hasInteracted={elements.length > 0}
-          limitReached={false}
           uploading={false}
-          user={null}
           showAttachments={false}
           showSuggestions={false}
         />

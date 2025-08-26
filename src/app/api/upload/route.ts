@@ -51,8 +51,8 @@ export async function POST(req: NextRequest) {
       url: uploaded.secure_url,
       publicId: uploaded.public_id,
       type: file.type.startsWith('image/') ? 'image' as const : 'file' as const,
-      width: (uploaded as any).width ?? null,
-      height: (uploaded as any).height ?? null,
+      width: uploaded.width ?? null,
+      height: uploaded.height ?? null,
       extractedTextPreview: extracted ? truncateText(extracted, 12000) : null,
     };
 

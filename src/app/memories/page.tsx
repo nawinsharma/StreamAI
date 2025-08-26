@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Search,
   Clock,
   MessageSquare,
   Hash,
   FileText,
-  Image,
+  Image as ImageIcon,
   Loader2,
   ArrowLeft,
   Menu,
@@ -40,16 +40,7 @@ export default function MemoriesPage() {
   const [deletingMemoryId, setDeletingMemoryId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
-  // Load memories when user is authenticated
-  useEffect(() => {
-    if (user?.id) {
-      console.log("=== Memory Page Auth Check ===");
-      console.log("User:", user.id ? "Authenticated" : "Not authenticated");
-      loadAllMemories();
-    }
-  }, [user?.id]);
-
-  const loadAllMemories = async () => {
+  const loadAllMemories = useCallback(async () => {
     setLoading(true);
     setError(null);
     console.log("=== Loading All Memories ===");
@@ -76,7 +67,16 @@ export default function MemoriesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id]);
+
+  // Load memories when user is authenticated
+  useEffect(() => {
+    if (user?.id) {
+      console.log("=== Memory Page Auth Check ===");
+      console.log("User:", user.id ? "Authenticated" : "Not authenticated");
+      loadAllMemories();
+    }
+  }, [user?.id, loadAllMemories]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
@@ -445,7 +445,7 @@ export default function MemoriesPage() {
 
                         {memory.metadata?.hasImages === true && (
                           <div className="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded flex items-center gap-1">
-                            <Image className="w-3 h-3" />
+                            <ImageIcon className="w-3 h-3" />
                             Images
                           </div>
                         )}

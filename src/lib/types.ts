@@ -7,3 +7,10 @@ export interface User {
    updatedAt: Date;
    image?: string | null | undefined;
 }
+
+export type Message = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  createdAt: Date;
+};

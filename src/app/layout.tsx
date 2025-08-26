@@ -34,14 +34,14 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
-        <HomeLayout>
         <ThemeProvider>
           <UserProviderWrapper initialUser={user}>
-            {children}
+            <HomeLayout>
+              {children}
+            </HomeLayout>
             <Toaster position="top-right" richColors />
           </UserProviderWrapper>
         </ThemeProvider>
-        </HomeLayout>
       </body>
     </html>
   );

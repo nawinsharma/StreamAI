@@ -13,9 +13,7 @@ interface ChatInputProps {
   onFileSelect: (file: File) => Promise<void>;
   isLoading: boolean;
   hasInteracted: boolean;
-  limitReached: boolean;
   uploading: boolean;
-  user: User | null;
   showAttachments?: boolean;
   showSuggestions?: boolean;
 }
@@ -27,9 +25,7 @@ export const ChatInput = React.memo(({
   onFileSelect,
   isLoading,
   hasInteracted,
-  limitReached,
   uploading,
-  user,
   showAttachments = true,
   showSuggestions = true
 }: ChatInputProps) => {

@@ -35,7 +35,7 @@ interface ChatHistoryProps {
 interface Chat {
   id: string;
   title: string;
-  messages: any[];
+  messages: Array<{ id: string; role: string; content: string; createdAt: string | Date }>;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -103,7 +103,7 @@ const ChatHistory = ({ searchQuery }: ChatHistoryProps) => {
         } else {
           toast.error(result.error || "Failed to delete chat");
         }
-      } catch (error) {
+      } catch {
         toast.error("Error deleting chat");
       } finally {
         setIsDeleting(false);
@@ -233,7 +233,7 @@ const ChatHistory = ({ searchQuery }: ChatHistoryProps) => {
                   >
                     <Button
                       disabled={isDeleting}
-                      onClick={(e: any) => handleDeleteClick(e, chat.id)}
+                      onClick={(e) => handleDeleteClick(e, chat.id)}
                       variant="ghost"
                       size="sm"
                       className={cn(

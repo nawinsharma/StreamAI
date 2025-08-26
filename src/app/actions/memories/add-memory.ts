@@ -34,7 +34,7 @@ export async function addMemoryAction(
     ];
 
     // Add memory using mem0 API
-    const result = await mem0Client.add(messages, {
+    await mem0Client.add(messages, {
       user_id: session.user.id,
       metadata: {
         ...metadata,

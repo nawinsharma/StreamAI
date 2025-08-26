@@ -4,7 +4,7 @@ export interface PendingMessage {
   id: string;
   content: string;
   timestamp: string;
-  attachment?: any;
+  attachment?: unknown;
 }
 
 export interface PendingFile {
