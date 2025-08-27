@@ -1,0 +1,1 @@
+StreamAI - Streaming AI Chat with personal long-term memory, RAG, and custom tools

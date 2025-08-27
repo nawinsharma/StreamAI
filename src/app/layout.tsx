@@ -43,9 +43,9 @@ export const metadata: Metadata = {
     images: [
       {
         url: '/og-image.png',
-        width: 1533,
-        height: 909,
-        alt: 'StreamAI - Streaming AI Chat with Long-term Memory and RAG',
+        width: 1200,
+        height: 630,
+        alt: 'og image',
       },
     ],  
     locale: 'en_US',
@@ -55,16 +55,8 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: "StreamAI | Streaming AI Chat",
     description: "A streaming AI chat with personal long-term memory, RAG, different custom tools, persistent chat history with top class experience",
-    images: [
-      {
-        url: '/og-image.png',
-        width: 1533,
-        height: 909,
-        alt: 'StreamAI - Streaming AI Chat with Long-term Memory and RAG',
-      }
-    ],
+    images: ['/og-image.png'],
     creator: '@nawinscript',
-    site: '@nawinscript',
   },
   robots: {
     index: true,
