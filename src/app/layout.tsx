@@ -20,34 +20,25 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "StreamAI - Streaming AI Chat",
-  description: "A streaming AI chat with personal long-term memory, RAG, different custom tools, persistent chat history with top class experience",
-  keywords: [
-    "streaming ai chat",
-    "personal long-term memory",
-    "rag",
-    "custom tools",
-    "persistent chat history",
-    "streamai",
-  ],
-  authors: [{ name: "Nawin Kumar Sharma" }],
-  metadataBase: new URL('https://streamai.nawin.xyz'),
-  alternates: {
-    canonical: '/',
+  title: {
+    default: "StreamAI - Streaming AI Chat",
+    template: `%s | StreamAI`,
   },
+  description: "A streaming AI chat with personal long-term memory, RAG, different custom tools, persistent chat history with top class experience",
+  keywords: ["StreamAI", "Streaming AI Chat", "AI Assistant", "Long-term Memory", "RAG", "Custom Tools", "Persistent Chat History", "Next.js", "React", "TypeScript", "AI Chat"],
+  authors: [
+    {
+      name: "Nawin Kumar Sharma",
+      url: 'https://streamai.nawin.xyz',
+    },
+  ],
+  creator: "Nawin Kumar Sharma",
+  metadataBase: new URL('https://streamai.nawin.xyz'),
   openGraph: {
     title: "StreamAI | Streaming AI Chat",
     description: "A streaming AI chat with personal long-term memory, RAG, different custom tools, persistent chat history with top class experience",
     url: 'https://streamai.nawin.xyz',
     siteName: 'StreamAI',
-    images: [
-      {
-        url: '/og-image.png',
-        width: 1200,
-        height: 630,
-        alt: 'og image',
-      },
-    ],  
     locale: 'en_US',
     type: 'website',
   },
@@ -55,7 +46,6 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: "StreamAI | Streaming AI Chat",
     description: "A streaming AI chat with personal long-term memory, RAG, different custom tools, persistent chat history with top class experience",
-    images: ['/og-image.png'],
     creator: '@nawinscript',
   },
   robots: {

@@ -2,7 +2,7 @@ import { ImageResponse } from 'next/og'
  
 export const runtime = 'edge'
  
-export const alt = 'StreamAI - Streaming AI Chat | with personal long-term memory, RAG, different custom tools, persistent chat history with top class experience'
+export const alt = 'StreamAI - Streaming AI Chat with personal long-term memory, RAG, and custom tools'
 export const size = {
   width: 1200,
   height: 630,
@@ -113,7 +113,74 @@ export default async function Image() {
           >
             A streaming AI chat with personal long-term memory, RAG, different custom tools, persistent chat history with top class experience
           </p>
+          
+          {/* Enhanced tech stack with categories */}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+              alignItems: 'center',
+            }}
+          >
+            {/* Frontend */}
+            <div
+              style={{
+                display: 'flex',
+                gap: '12px',
+                flexWrap: 'wrap',
+                justifyContent: 'center',
+              }}
+            >
+              {['React', 'Next.js', 'TypeScript', 'Tailwind CSS'].map((tech) => (
+                <span
+                  key={tech}
+                  style={{
+                    background: 'rgba(96, 165, 250, 0.15)',
+                    color: '#60a5fa',
+                    padding: '8px 16px',
+                    borderRadius: '20px',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    border: '1px solid rgba(96, 165, 250, 0.3)',
+                    boxShadow: '0 4px 12px rgba(96, 165, 250, 0.1)',
+                  }}
+                >
+                  {tech}
+                </span>
+              ))}
+            </div>
+            
+            {/* Backend */}
+            <div
+              style={{
+                display: 'flex',
+                gap: '12px',
+                flexWrap: 'wrap',
+                justifyContent: 'center',
+              }}
+            >
+              {['AI Memory', 'RAG System', 'Custom Tools', 'Real-time Chat'].map((tech) => (
+                <span
+                  key={tech}
+                  style={{
+                    background: 'rgba(139, 92, 246, 0.15)',
+                    color: '#8b5cf6',
+                    padding: '8px 16px',
+                    borderRadius: '20px',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    border: '1px solid rgba(139, 92, 246, 0.3)',
+                    boxShadow: '0 4px 12px rgba(139, 92, 246, 0.1)',
+                  }}
+                >
+                  {tech}
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
+        
         {/* Enhanced bottom accent with multiple gradients */}
         <div
           style={{
