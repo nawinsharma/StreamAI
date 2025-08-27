@@ -2,24 +2,6 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import prisma from "./prisma";
 
-// Validate required auth environment variables
-const validateAuthConfig = () => {
-  const requiredVars = [
-    'GOOGLE_CLIENT_ID', 
-    'GOOGLE_CLIENT_SECRET',
-    'BETTER_AUTH_SECRET',
-    'BETTER_AUTH_URL'
-  ];
-  const missingVars = requiredVars.filter(varName => !process.env[varName]);
-  
-  if (missingVars.length > 0) {
-    throw new Error(`Missing required auth environment variables: ${missingVars.join(', ')}`);
-  }
-};
-
-// Validate configuration on startup
-validateAuthConfig();
-
 export const auth = betterAuth({
    database: prismaAdapter(prisma, {
       provider: "postgresql"
@@ -65,7 +47,6 @@ export const auth = betterAuth({
          }
       }
    },
-   // Add session configuration for better persistence
    session: {
       expiresIn: 60 * 60 * 24 * 7, // 7 days
       updateAge: 60 * 60 * 24, // 24 hours
@@ -74,18 +55,12 @@ export const auth = betterAuth({
          maxAge: 60 * 5 // 5 minutes
       }
    },
-   // Add better CORS configuration for production
    cors: {
-      origin: process.env.NODE_ENV === 'production' 
-         ? [
-            process.env.BETTER_AUTH_URL || process.env.NEXTAUTH_URL || process.env.VERCEL_URL ? 
-               `https://${process.env.BETTER_AUTH_URL || process.env.NEXTAUTH_URL || process.env.VERCEL_URL}` : 
-               'http://localhost:3000'
-           ]
-         : ['http://localhost:3000'],
+      origin: [
+        process.env.BETTER_AUTH_URL || 'https://streamai.nawin.xyz' || 'https://zen.nawin.xyz'
+      ],
       credentials: true
    },
-   // Add better error handling
    onError: (error: Error, request: Request) => {
       console.error('Auth error:', {
          error: error.message,

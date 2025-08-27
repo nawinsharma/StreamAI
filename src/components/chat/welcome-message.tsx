@@ -51,11 +51,10 @@ export const WelcomeMessage = React.memo(({ userName, onSuggestionClick, hasInpu
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`relative px-3 sm:px-6 py-2 rounded-lg font-medium transition-all duration-300 ease-out flex items-center gap-1 sm:gap-2 cursor-pointer ${
-                  activeTab === tab
+                className={`relative px-3 sm:px-6 py-2 rounded-lg font-medium transition-all duration-300 ease-out flex items-center gap-1 sm:gap-2 cursor-pointer ${activeTab === tab
                     ? "bg-background text-foreground shadow-md transform scale-105"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                }`}
+                  }`}
               >
                 {activeTab === tab && (
                   <div className="absolute inset-0 bg-purple-100 dark:bg-purple-900/30 rounded-lg" />
@@ -73,29 +72,29 @@ export const WelcomeMessage = React.memo(({ userName, onSuggestionClick, hasInpu
               key={`${activeTab}-${idx}`}
               className="group relative"
             >
-                  <button
-                  onClick={() => handleClick(question)}
-                  className="w-full p-2 sm:p-4 text-left bg-card border border-border/50 rounded-lg hover:border-purple-300 hover:shadow-md hover:shadow-purple-500/20 transition-all duration-300 ease-out group-hover:scale-[1.01] group-hover:-translate-y-0.5 cursor-pointer relative"
-                >
-                  {/* Content */}
-                  <div className="relative z-10">
-                    <div className="flex items-start gap-2">
-                      <div className="flex-shrink-0 w-6 h-6 sm:w-6 sm:h-6 rounded-full bg-purple-600 flex items-center justify-center text-white text-xs font-bold">
-                        {idx + 1}
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-foreground text-sm leading-relaxed group-hover:text-purple-700 dark:group-hover:text-purple-300 transition-colors duration-200">
-                          {question}
-                        </p>
-                      </div>
+              <button
+                onClick={() => handleClick(question)}
+                className="w-full p-2 sm:p-4 text-left bg-card border border-border/50 rounded-lg hover:border-purple-300 hover:shadow-md hover:shadow-purple-500/20 transition-all duration-300 ease-out group-hover:scale-[1.01] group-hover:-translate-y-0.5 cursor-pointer relative"
+              >
+                {/* Content */}
+                <div className="relative z-10">
+                  <div className="flex items-start gap-2">
+                    <div className="flex-shrink-0 w-6 h-6 sm:w-6 sm:h-6 rounded-full bg-purple-600 flex items-center justify-center text-white text-xs font-bold">
+                      {idx + 1}
                     </div>
-                    <div className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 opacity-60 group-hover:opacity-100 transition-opacity duration-300">
-                      <svg className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground group-hover:text-purple-600 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
+                    <div className="flex-1">
+                      <p className="text-foreground text-sm leading-relaxed group-hover:text-purple-700 dark:group-hover:text-purple-300 transition-colors duration-200">
+                        {question}
+                      </p>
                     </div>
                   </div>
-                </button>
+                  <div className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 opacity-60 group-hover:opacity-100 transition-opacity duration-300">
+                    <svg className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground group-hover:text-purple-600 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                </div>
+              </button>
             </div>
           ))}
         </div>
