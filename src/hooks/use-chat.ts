@@ -5,7 +5,6 @@ import { useUser } from "@/context/UserContext";
 import { Attachment } from "@/types/chat";
 import { User, UploadResponse } from "@/types/api";
 import { ERROR_MESSAGES } from "@/lib/constants";
-import { ChatMessage } from "@/components/chat/chat-message";
 import { createChat } from "@/app/actions/chatActions";
 
 interface ChatState {
@@ -15,6 +14,7 @@ interface ChatState {
   hasInteracted: boolean;
   currentChatId: string | null;
   pendingAttachment: Attachment | null;
+  pendingLocalFile?: File | null;
   uploading: boolean;
   error: string | null;
 }
@@ -28,6 +28,7 @@ interface ChatActions {
   onSubmit: (prompt: string) => Promise<void>;
   clearError: () => void;
   user: User | null;
+  clearPendingLocalFile: () => void;
 }
 
 /**
@@ -42,6 +43,7 @@ export const useChat = (): ChatState & ChatActions => {
     hasInteracted: false,
     currentChatId: null,
     pendingAttachment: null,
+    pendingLocalFile: null,
     uploading: false,
     error: null,
   });
@@ -83,25 +85,8 @@ export const useChat = (): ChatState & ChatActions => {
     setState(prev => ({ ...prev, error: null }));
   }, []);
 
-  // Create message element
-  const createMessageElement = useCallback((content: string, isUser: boolean, attachment?: Attachment | null) => {
-    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    
-    const element = React.createElement(ChatMessage, {
-      key: `${isUser ? 'user' : 'ai'}-${Date.now()}-${Math.random()}`,
-      isUser: isUser,
-      content: content,
-      timestamp: timestamp,
-      attachment: attachment,
-      onRemoveAttachment: () => {
-        setState(prev => ({ ...prev, pendingAttachment: null }));
-      }
-    });
-    
-    return element;
-  }, []);
-
-  // File upload without validation
+  
+  // File selection on home page: defer upload until submit
   const handleFileSelect = useCallback(async (file: File) => {
     try {
       if (!user) {
@@ -122,62 +107,13 @@ export const useChat = (): ChatState & ChatActions => {
         return;
       }
 
-      setState(prev => ({ ...prev, uploading: true, error: null }));
-
-      // Ensure chat exists for auth flow using server action
-      let ensuredChatId = state.currentChatId;
-      if (!ensuredChatId) {
-        console.log('🔍 Client: Creating chat via server action for file upload');
-        const chatResult = await createChat("New Chat");
-        
-        if (!chatResult.success) {
-          throw new Error(chatResult.error || "Failed to create chat");
-        }
-        
-        ensuredChatId = chatResult.data?.id || null;
-        setState(prev => ({ ...prev, currentChatId: ensuredChatId }));
-        if (ensuredChatId) {
-          router.push(`/chat/${ensuredChatId}`);
-        }
-      }
-
-      // Upload file
-      const form = new FormData();
-      form.append('chatId', ensuredChatId!);
-      form.append('file', file);
-      
-      const response = await fetch('/api/upload', { 
-        method: 'POST', 
-        body: form 
-      });
-      
-      if (!response.ok) {
-        throw new Error(ERROR_MESSAGES.UPLOAD_FAILED);
-      }
-
-      const data: UploadResponse = await response.json();
-      
-      setState(prev => ({
-        ...prev,
-        pendingAttachment: {
-          id: data.attachment.id,
-          name: data.attachment.name,
-          url: data.attachment.url,
-          type: data.attachment.type,
-          mimeType: data.attachment.mimeType,
-          size: data.attachment.size,
-          extractedTextPreview: data.attachment.extractedTextPreview,
-        },
-        uploading: false,
-      }));
-
-      console.log('✅ Client: File uploaded successfully via server action');
-      toast.success('File uploaded successfully');
+      setState(prev => ({ ...prev, pendingLocalFile: file, error: null }));
+      toast.success('File attached. It will upload when you send your message.');
     } catch (error) {
       handleError(error, 'file upload');
       setState(prev => ({ ...prev, uploading: false }));
     }
-  }, [state.currentChatId, router, handleError, user]);
+  }, [router, handleError, user]);
 
   // Create new chat
   const handleNewChat = useCallback(async () => {
@@ -197,7 +133,6 @@ export const useChat = (): ChatState & ChatActions => {
         throw new Error(chatResult.error || "Failed to create chat");
       }
       
-      console.log('✅ Client: New chat created successfully via server action');
       if (chatResult.data?.id) {
         router.push(`/chat/${chatResult.data.id}`);
       }
@@ -247,27 +182,39 @@ export const useChat = (): ChatState & ChatActions => {
       if (!chatId) {
         const title = prompt.substring(0, 50) + (prompt.length > 50 ? "..." : "");
         console.log('🔍 Client: Creating chat via server action for message submission');
-        
         const chatResult = await createChat(title);
-        
         if (!chatResult.success) {
           throw new Error(chatResult.error || "Failed to create chat");
         }
-        
         chatId = chatResult.data?.id;
         if (chatId) {
           setState(prev => ({ ...prev, currentChatId: chatId as string | null }));
         }
-        
         console.log('✅ Client: Chat created successfully via server action for message');
-        
-        // Immediately redirect to chat page with message parameter
-        // This eliminates the double loading and makes the flow seamless
-        router.push(`/chat/${chatId}?message=${encodeURIComponent(prompt)}`);
-        return; // Exit early, chat page will handle the message immediately
       }
 
-      // If we already have a chatId, redirect to that chat with the message
+      // If a local file is pending, upload it now to obtain attachment metadata
+      if (state.pendingLocalFile && chatId) {
+        try {
+          setState(prev => ({ ...prev, uploading: true }));
+          const form = new FormData();
+          form.append('chatId', chatId);
+          form.append('file', state.pendingLocalFile);
+          const response = await fetch('/api/upload', { method: 'POST', body: form });
+          if (!response.ok) {
+            throw new Error(ERROR_MESSAGES.UPLOAD_FAILED);
+          }
+          const data: UploadResponse = await response.json();
+          const pendingKey = `pendingAttachment:${chatId}`;
+          localStorage.setItem(pendingKey, JSON.stringify(data.attachment));
+          setState(prev => ({ ...prev, pendingLocalFile: null, uploading: false }));
+        } catch (err) {
+          console.error('Deferred upload failed:', err);
+          toast.error('File upload failed');
+        }
+      }
+
+      // Redirect to the chat with the initial message; chat page will submit immediately
       router.push(`/chat/${chatId}?message=${encodeURIComponent(prompt)}`);
     } catch (error) {
       handleError(error, 'message submission');
@@ -277,6 +224,7 @@ export const useChat = (): ChatState & ChatActions => {
     state.isLoading, 
     state.currentChatId, 
     state.pendingAttachment, 
+    state.pendingLocalFile,
     user, 
     router, 
     handleError
@@ -297,6 +245,10 @@ export const useChat = (): ChatState & ChatActions => {
     setState(prev => ({ ...prev, pendingAttachment: attachment }));
   }, []);
 
+  const clearPendingLocalFile = useCallback(() => {
+    setState(prev => ({ ...prev, pendingLocalFile: null }));
+  }, []);
+
   return {
     ...state,
     setElements,
@@ -307,5 +259,6 @@ export const useChat = (): ChatState & ChatActions => {
     onSubmit,
     clearError,
     user,
+    clearPendingLocalFile,
   };
 };

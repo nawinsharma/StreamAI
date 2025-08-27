@@ -29,7 +29,7 @@ export function AIMessageComponent({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="flex justify-start mb-1 animate-in slide-in-from-left-2 duration-300 group">
+    <div className="flex justify-start mb-1 group">
       <div className="flex flex-col items-start space-y-2 max-w-[85%]">
         <div className="px-6 py-4 rounded-3xl rounded-bl-lg text-gray-900 dark:text-gray-100">
           <div className="text-sm leading-relaxed font-medium">
@@ -94,7 +94,7 @@ export function AIMessageText(props: MessageTextProps) {
   };
 
   return (
-    <div className="flex justify-start mb-1 animate-in slide-in-from-left-2 duration-300 group">
+    <div className="flex justify-start mb-1 group">
       <div className="flex flex-col items-start space-y-2 max-w-[85%]">
         <div className="px-6 py-4 rounded-3xl rounded-bl-lg text-gray-900 dark:text-gray-100">
           <div className="text-sm leading-relaxed font-medium">
@@ -138,7 +138,7 @@ export function AIMessageText(props: MessageTextProps) {
 
 export function HumanMessageText(props: MessageTextProps) {
   return (
-    <div className="flex justify-end mb-1 animate-in slide-in-from-right-2 duration-300">
+    <div className="flex justify-end mb-1">
       <div className="flex flex-col items-end space-y-2 max-w-[70%]">
         <div className="px-6 py-4 rounded-3xl rounded-br-lg bg-gradient-to-br from-violet-600 to-violet-700 text-white shadow-lg border border-violet-600/20 backdrop-blur-sm">
           <div className="text-sm leading-relaxed font-medium">{props.content}</div>
@@ -154,23 +154,32 @@ export function HumanMessageText(props: MessageTextProps) {
 
 export function AISkeletonLoading() {
   return (
-    <div className="flex justify-start mb-1 animate-in slide-in-from-left-2 duration-300">
+    <div className="flex justify-start mb-1">
       <div className="flex flex-col items-start space-y-2 max-w-[70%]">
         <div className="px-6 py-4 rounded-3xl rounded-bl-lg text-gray-900 dark:text-gray-100">
           <div className="flex flex-col space-y-3">
-            {/* Loading dots */}
-            <div className="flex space-x-2">
-              <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce"></div>
-              <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-              <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-            </div>
-            
-            {/* Text placeholders - three lines of varying lengths */}
             <div className="space-y-2">
-              <div className="h-2 w-40 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
-              <div className="h-2 w-60 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
-              <div className="h-2 w-80 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
+              <div className="h-3 w-56 bg-gray-300/70 dark:bg-gray-700/70 rounded"></div>
+              <div className="h-3 w-80 bg-gray-300/70 dark:bg-gray-700/70 rounded"></div>
+              <div className="h-3 w-64 bg-gray-300/70 dark:bg-gray-700/70 rounded"></div>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Minimal, no-animation variant for pages preferring zero motion
+export function AISkeletonMinimal() {
+  return (
+    <div className="flex justify-start mb-1">
+      <div className="flex flex-col items-start space-y-2 max-w-[70%]">
+        <div className="px-6 py-4 rounded-3xl rounded-bl-lg text-gray-900 dark:text-gray-100">
+          <div className="space-y-2">
+            <div className="h-3 w-56 bg-gray-300/70 dark:bg-gray-700/70 rounded"></div>
+            <div className="h-3 w-80 bg-gray-300/70 dark:bg-gray-700/70 rounded"></div>
+            <div className="h-3 w-64 bg-gray-300/70 dark:bg-gray-700/70 rounded"></div>
           </div>
         </div>
       </div>

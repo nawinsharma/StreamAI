@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef, use } from "react";
-import { AISkeletonLoading } from "@/components/message";
+import { AISkeletonMinimal } from "@/components/message";
 import { useScrollToBottom } from "@/components/use-scroll-to-bottom";
 import { toast } from "sonner";
 import { ErrorHandler } from "@/lib/error-handler";
@@ -74,14 +74,9 @@ function tryParseAttachmentFromContent(content: string): AttachmentMeta | null {
   return null;
 }
 
-/**
- * Cleans message content by removing attachment metadata
- */
 function cleanMessageContent(content: string): string {
   // Remove old format attachment metadata
   const cleaned = content.replace(/\n?\{\"__attachment\"[\s\S]*\}$/,'');
-  
-  // Remove new format attachment metadata (JSON at the end)
   const lines = cleaned.split('\n');
   const cleanLines = lines.filter(line => {
     const trimmed = line.trim();
@@ -119,6 +114,11 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
   const hasInitialized = useRef(false);
   const searchParams = useSearchParams();
 
+  useEffect(() => {
+    const t = setTimeout(scrollToBottom, 200);
+    return () => clearTimeout(t);
+  }, [elements.length, isLoading, scrollToBottom]);
+
   const handleTogglePublic = async (chatId: string) => {
     try {
       const result = await toggleChatPublic(chatId);
@@ -144,29 +144,35 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
     setIsLoading(true);
     const newElements = [...elements];
 
+    // Capture current attachment for this message and immediately clear the input preview
+    const usedAttachment = pendingAttachment;
+    if (pendingAttachment) {
+      setPendingAttachment(null);
+    }
+
     // Add user message to the chat
     newElements.push(
-      <div key={`user-${Date.now()}`} className="flex justify-end mb-1 animate-in slide-in-from-right-2 duration-300">
+      <div key={`user-${Date.now()}`} className="flex justify-end mb-1">
         <div className="flex flex-col items-end space-y-2 max-w-[70%]">
-          {pendingAttachment && (
+          {usedAttachment && (
             <div className="mb-4">
-              {pendingAttachment.type === 'image' ? (
+              {usedAttachment.type === 'image' ? (
                 <ChatImage 
-                  src={pendingAttachment.url} 
-                  alt={pendingAttachment.name}
+                  src={usedAttachment.url} 
+                  alt={usedAttachment.name}
                   className="mb-4"
                   size="sm"
                 />
               ) : (
                 <FilePreview 
                   file={{
-                    name: pendingAttachment.name,
-                    mimeType: pendingAttachment.mimeType,
-                    url: pendingAttachment.url,
-                    type: pendingAttachment.type,
-                    width: pendingAttachment.width,
-                    height: pendingAttachment.height,
-                    size: pendingAttachment.size,
+                    name: usedAttachment.name,
+                    mimeType: usedAttachment.mimeType,
+                    url: usedAttachment.url,
+                    type: usedAttachment.type,
+                    width: usedAttachment.width,
+                    height: usedAttachment.height,
+                    size: usedAttachment.size,
                   }}
                   onRemove={() => setPendingAttachment(null)}
                 />
@@ -183,11 +189,7 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
         </div>
       </div>
     );
-
-    // Update elements immediately to show user message
     setElements(newElements);
-    
-    // Trigger scroll to bottom immediately after adding user message
     setTimeout(scrollToBottom, 10);
 
     try {
@@ -200,15 +202,15 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
       };
 
       // Include attachment metadata if present
-      if (pendingAttachment) {
+      if (usedAttachment) {
         requestBody.attachmentMeta = {
-          name: pendingAttachment.name,
-          mimeType: pendingAttachment.mimeType,
-          url: pendingAttachment.url,
-          type: pendingAttachment.type,
-          width: pendingAttachment.width,
-          height: pendingAttachment.height,
-          extractedTextPreview: pendingAttachment.extractedTextPreview,
+          name: usedAttachment.name,
+          mimeType: usedAttachment.mimeType,
+          url: usedAttachment.url,
+          type: usedAttachment.type,
+          width: usedAttachment.width,
+          height: usedAttachment.height,
+          extractedTextPreview: usedAttachment.extractedTextPreview,
         };
       }
 
@@ -226,7 +228,7 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
       let aiText = '';
       let weatherPayload: WeatherPayload | null = null;
       const renderAI = (text: string, weather: WeatherPayload | null) => (
-        <div key={`ai-${Date.now()}`} className="flex justify-start mb-1 animate-in slide-in-from-left-2 duration-300 group">
+        <div key={`ai-${Date.now()}`} className="flex justify-start mb-1 group">
           <div className="flex flex-col items-start space-y-2 max-w-[85%]">
             {weather ? (
               <WeatherCard data={weather} />
@@ -345,7 +347,7 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
           if (message.role === "user") {
             const att = tryParseAttachmentFromContent(message.content);
             return (
-              <div key={message.id} className="flex justify-end mb-1 animate-in slide-in-from-right-2 duration-300">
+              <div key={message.id} className="flex justify-end mb-1">
                 <div className="flex flex-col items-end space-y-2 max-w-[70%]">
                   {att && (
                     <div className="mb-4">
@@ -385,7 +387,7 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
             );
           } else {
             return (
-              <div key={message.id} className="flex justify-start mb-1 animate-in slide-in-from-left-2 duration-300 group">
+              <div key={message.id} className="flex justify-start mb-1 group">
                 <div className="flex flex-col items-start space-y-2 max-w-[85%]">
                   <div className="px-6 py-4 rounded-3xl rounded-bl-lg text-gray-900 dark:text-gray-100">
                     {renderMessageContent(message.content)}
@@ -458,6 +460,25 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
       setIsNewChat(true);
       setLoading(false);
       setChat({ id: chatId, title: initial.substring(0, 50) + (initial.length > 50 ? "..." : ""), messages: [], createdAt: new Date(), updatedAt: new Date(), isPublic: false });
+      // If we have a deferred attachment from the home page, hydrate it now
+      try {
+        const pendingKey = `pendingAttachment:${chatId}`;
+        const raw = typeof window !== 'undefined' ? localStorage.getItem(pendingKey) : null;
+        if (raw) {
+          const att = JSON.parse(raw);
+          setPendingAttachment({
+            name: att.name,
+            mimeType: att.mimeType,
+            url: att.url,
+            type: att.type,
+            width: att.width,
+            height: att.height,
+            size: att.size,
+            extractedTextPreview: att.extractedTextPreview,
+          });
+          localStorage.removeItem(pendingKey);
+        }
+      } catch {}
       setPendingInitialMessage(initial);
     } else if (!hasInitialized.current) {
       hasInitialized.current = true;
@@ -606,7 +627,7 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
             )}
             
             {/* Loading Indicator */}
-            {isLoading && <AISkeletonLoading />}
+            {isLoading && <AISkeletonMinimal />}
             
             <div ref={messagesEndRef} data-messages-end />
           </div>

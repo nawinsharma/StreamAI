@@ -29,6 +29,9 @@ const ChatContent = React.memo(() => {
     onSubmit,
     error,
     clearError,
+    // from hook additions
+    clearPendingLocalFile,
+    pendingLocalFile,
   } = useChat();
 
   const [messagesContainerRef, messagesEndRef] = useScrollToBottom<HTMLDivElement>();
@@ -141,6 +144,11 @@ const ChatContent = React.memo(() => {
             isLoading={isLoading}
             hasInteracted={hasInteracted}
             uploading={uploading}
+            pendingFile={pendingLocalFile as File | null}
+            onRemovePendingFile={() => {
+              clearPendingLocalFile();
+              try { localStorage.removeItem('pendingAttachment'); } catch {}
+            }}
           />
         </ErrorBoundary>
       </div>
