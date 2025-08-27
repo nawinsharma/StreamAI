@@ -4,14 +4,11 @@ import { useState, useEffect, useCallback } from "react";
 import {
   Search,
   Clock,
-  MessageSquare,
   Hash,
   FileText,
   Image as ImageIcon,
   Loader2,
   ArrowLeft,
-  Menu,
-  PanelLeft,
   Brain,
   Trash2,
   AlertTriangle,
@@ -35,8 +32,8 @@ export default function MemoriesPage() {
   const [loading, setLoading] = useState(false);
   const [searchMode, setSearchMode] = useState<"all" | "search">("all");
   const [error, setError] = useState<string | null>(null);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  // Removed legacy mobile slider menu
+  // Removed sidebar state since we're removing the collapse button
   const [deletingMemoryId, setDeletingMemoryId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
@@ -181,14 +178,6 @@ export default function MemoriesPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                className="md:hidden"
-              >
-                <PanelLeft className="w-5 h-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
                 onClick={() => router.push("/")}
                 className="text-muted-foreground hover:text-foreground"
               >
@@ -202,66 +191,11 @@ export default function MemoriesPage() {
                   View and search through your conversation memories stored by AI
                 </p>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="md:hidden"
-              >
-                <Menu className="w-5 h-5" />
-              </Button>
+              {/* Removed three-dash mobile slider trigger */}
             </div>
           </div>
-
-          {/* Mobile Menu Overlay */}
-          {isMobileMenuOpen && (
-            <div
-              className="md:hidden fixed inset-0 bg-black/50 z-40 transition-opacity duration-300"
-              onClick={() => setIsMobileMenuOpen(false)}
-            />
-          )}
-
-          {/* Mobile Menu */}
-          {isMobileMenuOpen && (
-            <div className="md:hidden fixed top-0 left-0 w-80 h-full bg-card border-r border-border z-50 transform transition-transform duration-300">
-              <div className="flex flex-col h-full p-4">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-lg font-semibold text-foreground">Menu</h2>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <ArrowLeft className="w-5 h-5" />
-                  </Button>
-                </div>
-
-                <div className="space-y-2">
-                  <Button
-                    onClick={() => {
-                      router.push("/");
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="w-full bg-transparent hover:bg-accent text-foreground flex items-center justify-start gap-3 px-4 py-3 rounded-lg"
-                  >
-                    <MessageSquare className="h-5 w-5" />
-                    <span>Back to Chat</span>
-                  </Button>
-
-                  <Button
-                    onClick={() => {
-                      loadAllMemories();
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="w-full bg-transparent hover:bg-accent text-foreground flex items-center justify-start gap-3 px-4 py-3 rounded-lg"
-                  >
-                    <Search className="h-5 w-5" />
-                    <span>Refresh Memories</span>
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
+ 
+          {/* Removed legacy mobile slider menu and overlay */}
 
           {/* Search */}
           <div className="mb-6 flex-shrink-0">

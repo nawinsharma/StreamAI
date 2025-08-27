@@ -123,9 +123,6 @@ export const useChat = (): ChatState & ChatActions => {
         router.push("/sign-in");
         return;
       }
-      
-      console.log('🔍 Client: Creating new chat via server action');
-      
       // Create new chat for authenticated users using server action
       const chatResult = await createChat("New Chat");
       

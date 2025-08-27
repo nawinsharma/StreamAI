@@ -55,12 +55,12 @@ export const SidebarToggle = () => {
   if (isCollapsed) {
     // When collapsed, position absolutely at the top of the sidebar area
     return (
-      <div className="absolute top-2 left-1 right-1 z-50 flex flex-col items-center gap-1 p-1 bg-background/90 backdrop-blur-sm rounded-lg border border-border/50">
+      <div className="absolute top-2 left-1 right-1 z-50 flex flex-col items-center gap-1 p-1">
         <SidebarTrigger className="size-8 p-1 text-foreground hover:bg-accent hover:text-accent-foreground" />
         
         <Dialog open={isSearchOpen} onOpenChange={setIsSearchOpen}>
           <DialogTrigger asChild>
-            <button className="flex size-8 items-center justify-center rounded-lg transition-colors p-1 text-foreground hover:bg-accent hover:text-accent-foreground">
+            <button className="flex size-8 items-center justify-center rounded-lg transition-colors p-1 text-foreground hover:bg-accent hover:text-accent-foreground bg-background/80 backdrop-blur-sm">
               <Search className="size-4" />
             </button>
           </DialogTrigger>
@@ -92,7 +92,7 @@ export const SidebarToggle = () => {
 
         <Link
           href="/chat"
-          className="flex size-8 items-center justify-center rounded-lg transition-colors p-1 text-foreground hover:bg-accent hover:text-accent-foreground"
+          className="flex size-8 items-center justify-center rounded-lg transition-colors p-1 text-foreground hover:bg-accent hover:text-accent-foreground bg-background/80 backdrop-blur-sm"
         >
           <Plus className="size-4" />
         </Link>

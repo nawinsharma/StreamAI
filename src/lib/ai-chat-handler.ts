@@ -1,4 +1,4 @@
-import { streamText, convertToModelMessages, CoreMessage } from "ai";
+import { streamText, CoreMessage } from "ai";
 import { google } from "@ai-sdk/google";
 import { getEnhancedWeather } from "./ai-tools/enhanced-weather";
 import prisma from "./prisma";
@@ -66,33 +66,6 @@ export function createSystemMessage(): CoreMessage {
     role: "system",
     content: "You are a helpful AI assistant with comprehensive capabilities. You can help with coding, programming, web development, general questions, image analysis, and more. You have access to a weather tool for city-specific weather information. When asked for code, provide complete, working examples with explanations. Be helpful, accurate, and provide detailed responses when appropriate.",
   };
-}
-
-/**
- * Converts messages to UIMessage format for AI SDK
- */
-function convertToUIMessages(messages: CoreMessage[]): Array<{ role: "user" | "assistant" | "system"; parts: Array<{ type: "text" | "image"; text?: string; image?: string }> }> {
-  return messages.map((message) => {
-    if (typeof message.content === "string") {
-      return {
-        role: message.role as "user" | "assistant" | "system",
-        parts: [{ type: "text" as const, text: message.content }]
-      };
-    } else {
-      // Handle array content (for image messages)
-      return {
-        role: message.role as "user" | "assistant" | "system",
-        parts: (message.content as Array<{ type: string; text?: string; image_url?: { url?: string } }>).map((part) => {
-          if (part.type === "text") {
-            return { type: "text" as const, text: part.text || "" };
-          } else if (part.type === "image_url") {
-            return { type: "image" as const, image: part.image_url?.url };
-          }
-          return { type: "text", text: "" };
-        })
-      };
-    }
-  });
 }
 
 /**

@@ -144,7 +144,7 @@ const SidebarFooterSection = () => {
           </p>
         </div>
       </div>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 group-data-[collapsible=icon]:hidden">
             <Link href={GITHUB_URL} target="_blank" rel="noopener noreferrer">
               <Button
                 variant="ghost"

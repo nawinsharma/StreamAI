@@ -188,15 +188,15 @@ const ChatHistory = ({ searchQuery }: ChatHistoryProps) => {
   // If user is not signed in
   if (!session) {
     return (
-      <SidebarGroup className="flex flex-col h-full px-4 py-2">
+      <SidebarGroup className="flex flex-col h-full px-4 py-2 group-data-[collapsible=icon]:px-0">
         <p className={cn(
-          "text-md font-semibold mb-2 group-data-[collapsible=icon]:opacity-0 transition-all duration-500 ease-in-out",
+          "text-md font-semibold mb-2 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:hidden transition-all duration-500 ease-in-out",
           "text-purple-600"
         )}>
           History
         </p>
         <SidebarGroupContent className="flex-1 overflow-y-auto">
-          <div className="text-center py-8">
+          <div className="text-center py-8 group-data-[collapsible=icon]:hidden">
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
               Sign in to view history
             </p>
@@ -214,15 +214,15 @@ const ChatHistory = ({ searchQuery }: ChatHistoryProps) => {
 
   if (chats.length === 0) {
     return (
-      <SidebarGroup className="flex flex-col h-full px-4 py-2">
+      <SidebarGroup className="flex flex-col h-full px-4 py-2 group-data-[collapsible=icon]:px-0">
         <p className={cn(
-          "text-md font-semibold mb-2 group-data-[collapsible=icon]:opacity-0 transition-all duration-500 ease-in-out",
+          "text-md font-semibold mb-2 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:hidden transition-all duration-500 ease-in-out",
           "text-purple-600"
         )}>
           History
         </p>
         <SidebarGroupContent className="flex-1 overflow-y-auto">
-          <div className="text-center py-8">
+          <div className="text-center py-8 group-data-[collapsible=icon]:hidden">
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
               No chats found
             </p>
@@ -241,12 +241,12 @@ const ChatHistory = ({ searchQuery }: ChatHistoryProps) => {
 
   return (
     <>
-      <SidebarGroup className="flex flex-col h-full px-4 py-2">
+      <SidebarGroup className="flex flex-col h-full px-4 py-2 group-data-[collapsible=icon]:px-0">
         <SidebarGroupContent className="flex-1 overflow-y-auto">
-          <SidebarMenu className="space-y-1 pb-52">
+          <SidebarMenu className="space-y-1 pb-52 group-data-[collapsible=icon]:hidden">
             {!!pinnedChats.length && (
               <div className="mb-4">
-                <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400 px-2 py-1 select-none">
+                <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400 px-2 py-1 select-none group-data-[collapsible=icon]:hidden">
                   <div className="flex items-center gap-2">
                     <Pin className="h-3 w-3 text-purple-600" />
                     <span>Pinned</span>
@@ -346,7 +346,7 @@ const ChatHistory = ({ searchQuery }: ChatHistoryProps) => {
 
             {!!unpinnedChats.length && (
               <div className="mt-3">
-                <div className="text-xs text-zinc-500 dark:text-zinc-400 px-2 py-1 select-none">{"Today"}</div>
+                <div className="text-xs text-zinc-500 dark:text-zinc-400 px-2 py-1 select-none group-data-[collapsible=icon]:hidden">{"Today"}</div>
                 <div className="space-y-2">
                 {unpinnedChats.map((chat: Chat) => (
                   <SidebarMenuItem

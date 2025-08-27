@@ -255,8 +255,6 @@ const RagChatPage = () => {
           loadMessages(transformedData.messages);
         } else {
           // Create new chat if none exists
-          console.log('🔍 Creating new chat for collection:', collectionId);
-          
           const result = await createRagChat(
             collectionId, 
             `Chat with ${collection.name}`
@@ -264,8 +262,6 @@ const RagChatPage = () => {
           
           if (result.success && result.data) {
             console.log('✅ Created new chat:', result.data.id);
-            
-            // Transform the data to match our interface
             const transformedData: RagChatData = {
               id: result.data.id,
               title: result.data.title,

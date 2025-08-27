@@ -36,11 +36,11 @@ const HomeSidebar = ({ isMobile = false }: HomeSidebarProps) => {
         className={`bg-background border-none ${
           isMobile 
             ? 'w-full h-full' 
-            : 'w-[18rem] group-data-[collapsible=icon]:w-12 transition-all duration-300 ease-in-out'
+            : 'w-[18rem] group-data-[collapsible=icon]:w-10 transition-all duration-300 ease-in-out'
         } flex flex-col z-50`}
       >
         <SidebarContent className="bg-background">
-          <MainSection />
+          <MainSection isMobile={isMobile} />
         </SidebarContent> 
         
         <SidebarFooter className={`p-4 bg-background ${
