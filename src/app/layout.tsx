@@ -39,6 +39,14 @@ export const metadata: Metadata = {
     description: "A streaming AI chat with personal long-term memory, RAG, different custom tools, persistent chat history with top class experience",
     url: 'https://streamai.nawin.xyz',
     siteName: 'StreamAI',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'og image',
+      },
+    ],
     locale: 'en_US',
     type: 'website',
   },
@@ -46,6 +54,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: "StreamAI | Streaming AI Chat",
     description: "A streaming AI chat with personal long-term memory, RAG, different custom tools, persistent chat history with top class experience",
+    images: ['/og-image.png'],
     creator: '@nawinscript',
   },
   robots: {
