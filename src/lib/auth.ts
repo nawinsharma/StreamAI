@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import prisma from "./prisma";
+import { DOMAIN_CONFIG } from "./domain-config";
 
 export const auth = betterAuth({
    database: prismaAdapter(prisma, {
@@ -56,9 +57,7 @@ export const auth = betterAuth({
       }
    },
    cors: {
-      origin: [
-        process.env.BETTER_AUTH_URL || 'https://streamai.nawin.xyz' || 'https://zen.nawin.xyz'
-      ],
+      origin: DOMAIN_CONFIG.ALLOWED_DOMAINS,
       credentials: true
    },
    onError: (error: Error, request: Request) => {
