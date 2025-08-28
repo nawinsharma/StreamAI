@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/context/UserContext";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import Image from "next/image";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -88,13 +89,19 @@ export function Header({ shareButton }: HeaderProps = {}) {
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-8 w-8 sm:h-10 sm:w-10 rounded-full">
-                    <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
-                      <AvatarImage 
-                        src={user.image || undefined} 
-                        alt={user.name || user.email || "User"}
-                      />
-                      <AvatarFallback className="text-sm sm:text-base font-medium">
+                  <Button variant="ghost" className="relative h-10 w-20 rounded-full border-none">
+                    <Avatar>
+                      {user.image ? (
+                        <Image
+                          src={user.image}
+                          alt={user.name || user.email || "User"}
+                          width={40}
+                          height={40}
+                          className="rounded-full object-cover"
+                          priority={false}
+                        />
+                      ) : null}
+                      <AvatarFallback className="text-base font-medium">
                         {user.name?.charAt(0)?.toUpperCase() || user.email?.charAt(0)?.toUpperCase() || "U"}
                       </AvatarFallback>
                     </Avatar>
