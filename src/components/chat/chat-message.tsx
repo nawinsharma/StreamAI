@@ -31,15 +31,12 @@ export const ChatMessage = React.memo(({
   }, [content]);
 
   const handleLike = useCallback(() => {
-    toast.success("Message liked");
   }, []);
 
   const handleDislike = useCallback(() => {
-    toast.success("Message disliked");
   }, []);
 
   const handleRedo = useCallback(() => {
-    toast.success("Regenerating response...");
   }, []);
 
   if (isUser) {

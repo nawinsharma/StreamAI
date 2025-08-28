@@ -85,12 +85,17 @@ export const CodeBlock = memo(function CodeBlock({
     return (
       <code
         className={cn(
-          "relative rounded px-1.5 py-0.5 font-mono text-sm break-words border",
+          "relative rounded px-1.5 py-0.5 font-mono text-sm break-words border overflow-wrap-break-word",
           isDark
             ? "bg-neutral-800/60 text-neutral-200 border-neutral-700/30"
             : "bg-neutral-200/80 text-neutral-900 border-neutral-300/50",
           className
         )}
+        style={{
+          wordBreak: 'break-all',
+          overflowWrap: 'break-word',
+          maxWidth: '100%',
+        }}
         {...props}
       >
         {children}
@@ -174,6 +179,15 @@ export const CodeBlock = memo(function CodeBlock({
               : "rgb(249 250 251)",
             fontSize: '14px',
             fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+            overflowX: 'auto',
+            overflowWrap: 'break-word',
+            wordWrap: 'break-word',
+            wordBreak: 'break-all',
+            whiteSpace: 'pre-wrap',
+            maxWidth: '100%',
+            minWidth: '0',
+            width: '100%',
+            boxSizing: 'border-box',
           }}
           wrapLongLines={true}
           showLineNumbers={false}

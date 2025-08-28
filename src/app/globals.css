@@ -333,3 +333,120 @@ textarea {
   height: 1px;
   background: #eee;
 }
+
+/* Code block mobile responsiveness */
+pre[class*="language-"],
+code[class*="language-"] {
+  overflow-x: auto;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-all;
+  white-space: pre-wrap;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Utility class for overflow wrapping */
+.overflow-wrap-break-word {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-all;
+}
+
+/* Ensure code blocks don't overflow their containers */
+.react-syntax-highlighter {
+  overflow-x: auto !important;
+  overflow-wrap: break-word !important;
+  word-wrap: break-word !important;
+  word-break: break-all !important;
+  white-space: pre-wrap !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Ensure code block containers don't overflow */
+.relative.overflow-hidden {
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+}
+
+/* Force code blocks to wrap on all screen sizes */
+pre[class*="language-"] {
+  white-space: pre-wrap !important;
+  word-wrap: break-word !important;
+  word-break: break-all !important;
+  overflow-wrap: break-word !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Target react-syntax-highlighter internal elements */
+.react-syntax-highlighter pre,
+.react-syntax-highlighter code {
+  white-space: pre-wrap !important;
+  word-wrap: break-word !important;
+  word-break: break-all !important;
+  overflow-wrap: break-word !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Override any potential conflicting styles */
+.react-syntax-highlighter * {
+  white-space: pre-wrap !important;
+  word-wrap: break-word !important;
+  word-break: break-all !important;
+  overflow-wrap: break-word !important;
+}
+
+/* Global code block improvements for all screen sizes */
+pre[class*="language-"],
+code[class*="language-"],
+.react-syntax-highlighter {
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+  padding: 16px !important;
+}
+
+/* Ensure code blocks are contained within message containers */
+[data-messages-container] pre,
+[data-messages-container] code {
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  word-break: break-all !important;
+}
+
+/* Ensure message containers don't overflow */
+.max-w-\[85\%\],
+.max-w-\[70\%\] {
+  max-width: 95% !important;
+  min-width: 0 !important;
+}
+
+/* Ensure all message content is properly contained */
+[data-messages-container] > div {
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+}
+
+/* Ensure message bubbles don't overflow */
+[data-messages-container] .px-6 {
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  word-wrap: break-word !important;
+}
+
+/* Mobile-specific adjustments */
+@media (max-width: 768px) {
+  pre[class*="language-"],
+  code[class*="language-"],
+  .react-syntax-highlighter {
+    font-size: 12px !important;
+    line-height: 1.4 !important;
+    padding: 12px !important;
+  }
+}

@@ -23,11 +23,12 @@ import { getChatsForUser } from "@/app/actions/chatActions";
 interface Chat {
   id: string;
   title: string;
-  messages: {
-    content: string;
-  }[];
+  pinned: boolean;
   createdAt: Date;
   updatedAt: Date;
+  _count: {
+    messages: number;
+  };
 }
 
 export const SidebarToggle = () => {
@@ -79,7 +80,7 @@ export const SidebarToggle = () => {
                         className="w-full cursor-pointer"
                       >
                         <span className="truncate">
-                          {chat.title || chat.messages[0]?.content?.substring(0, 50) || "New Chat"}
+                          {chat.title || "New Chat"}
                         </span>
                       </Link>
                     </CommandItem>

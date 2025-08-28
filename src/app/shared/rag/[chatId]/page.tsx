@@ -265,13 +265,17 @@ export default function SharedRagChatPage({ params }: { params: Promise<{ chatId
                             <Copy className="size-3" />
                           </Action>
                           <Action
-                            onClick={() => toast.success("Message liked")}
+                            onClick={() => {
+                              // Like action without toast
+                            }}
                             label="Like"
                           >
                             <ThumbsUp className="size-3" />
                           </Action>
                           <Action
-                            onClick={() => toast.success("Message disliked")}
+                            onClick={() => {
+                              // Dislike action without toast
+                            }}
                             label="Dislike"
                           >
                             <ThumbsDown className="size-3" />

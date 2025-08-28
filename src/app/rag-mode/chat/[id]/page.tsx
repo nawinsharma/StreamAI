@@ -169,19 +169,25 @@ const RagChatPage = () => {
                     <Copy className="size-3" />
                   </Action>
                   <Action
-                    onClick={() => toast.success("Message liked")}
+                    onClick={() => {
+                      // Like action without toast
+                    }}
                     label="Like"
                   >
                     <ThumbsUp className="size-3" />
                   </Action>
                   <Action
-                    onClick={() => toast.success("Message disliked")}
+                    onClick={() => {
+                      // Dislike action without toast
+                    }}
                     label="Dislike"
                   >
                     <ThumbsDown className="size-3" />
                   </Action>
                   <Action
-                    onClick={() => toast.success("Regenerating response...")}
+                    onClick={() => {
+                      // Regenerate action without toast
+                    }}
                     label="Redo"
                   >
                     <RotateCcw className="size-3" />
@@ -415,19 +421,25 @@ const RagChatPage = () => {
                   <Copy className="size-3" />
                 </Action>
                 <Action
-                  onClick={() => toast.success("Message liked")}
+                  onClick={() => {
+                    // Like action without toast
+                  }}
                   label="Like"
                 >
                   <ThumbsUp className="size-3" />
                 </Action>
                 <Action
-                  onClick={() => toast.success("Message disliked")}
+                  onClick={() => {
+                    // Dislike action without toast
+                  }}
                   label="Dislike"
                 >
                   <ThumbsDown className="size-3" />
                 </Action>
                 <Action
-                  onClick={() => toast.success("Regenerating response...")}
+                  onClick={() => {
+                    // Regenerate action without toast
+                  }}
                   label="Redo"
                 >
                   <RotateCcw className="size-3" />

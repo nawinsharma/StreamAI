@@ -77,9 +77,18 @@ export const processPendingData = async (): Promise<string | null> => {
     // Wait a bit for the user context to be fully updated
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // Create a new chat using server action
     console.log('creating new chat via server action...');
-    const chatResult = await createChat("New Chat");
+    let chatTitle = "New Chat";
+    
+    if (pendingMessages.length > 0) {
+      const firstMessage = pendingMessages[0];
+      chatTitle = firstMessage.content.substring(0, 50) + (firstMessage.content.length > 50 ? "..." : "");
+    } else if (pendingFiles.length > 0) {
+      const firstFile = pendingFiles[0];
+      chatTitle = `Chat with ${firstFile.name}`;
+    }
+    
+    const chatResult = await createChat(chatTitle);
     
     if (!chatResult.success) {
       console.error('failed to create chat:', chatResult.error);
@@ -111,7 +120,7 @@ export const processPendingData = async (): Promise<string | null> => {
     console.log('redirecting to:', redirectUrl);
     return redirectUrl;
   } catch (error) {
-    console.error('❌ Error processing pending data:', error);
+    console.error('Error processing pending data:', error);
     return null;
   }
 }; 

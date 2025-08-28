@@ -12,7 +12,7 @@ import {
 import { usePathname, useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { X, Pin, PinOff, ChevronDown } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,10 +35,12 @@ interface ChatHistoryProps {
 interface Chat {
   id: string;
   title: string;
-  messages: Array<{ id: string; role: string; content: string; createdAt: string | Date }>;
   pinned?: boolean;
   createdAt: Date;
   updatedAt: Date;
+  _count: {
+    messages: number;
+  };
 }
 
 const ChatHistory = ({ searchQuery }: ChatHistoryProps) => {
@@ -56,6 +58,13 @@ const ChatHistory = ({ searchQuery }: ChatHistoryProps) => {
     const cleanTitle = chat.title.replace(/^Branch from: /, '');
     return cleanTitle;
   };
+
+  // Memoize filtered chats for better performance
+  const { pinnedChats, unpinnedChats } = useMemo(() => {
+    const pinned = chats.filter((c) => !!c.pinned);
+    const unpinned = chats.filter((c) => !c.pinned);
+    return { pinnedChats: pinned, unpinnedChats: unpinned };
+  }, [chats]);
 
   // Load chats for the currently signed-in user
   useEffect(() => {
@@ -75,36 +84,40 @@ const ChatHistory = ({ searchQuery }: ChatHistoryProps) => {
           const transformedChats: Chat[] = result.data.map((chat: any) => ({
             id: chat.id,
             title: chat.title,
-            messages: chat.messages.map((msg: any) => ({
-              id: msg.id,
-              role: msg.role,
-              content: msg.content,
-              createdAt: msg.createdAt,
-            })),
             pinned: chat.pinned || false,
             createdAt: chat.createdAt,
             updatedAt: chat.updatedAt,
+            _count: {
+              messages: chat._count.messages,
+            },
           }));
           setChats(transformedChats);
         } else {
           setChats([]);
+          if (result.error) {
+            console.error("Failed to load chats:", result.error);
+          }
         }
+      } catch (error) {
+        console.error("Error loading chats:", error);
+        setChats([]);
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadChats();
+    const timeoutId = setTimeout(loadChats, 100);
+    return () => clearTimeout(timeoutId);
   }, [session, searchQuery]);
 
 
-  const handleDeleteClick = (e: React.MouseEvent, chatId: string) => {
+  const handleDeleteClick = useCallback((e: React.MouseEvent, chatId: string) => {
     e.preventDefault();
     e.stopPropagation();
     setChatToDelete(chatId);
-  };
+  }, []);
 
-  const confirmDelete = async () => {
+  const confirmDelete = useCallback(async () => {
     if (chatToDelete) {
       setIsDeleting(true);
       try {
@@ -126,9 +139,9 @@ const ChatHistory = ({ searchQuery }: ChatHistoryProps) => {
         setChatToDelete(null);
       }
     }
-  };
+  }, [chatToDelete, path, router]);
 
-  const onTogglePin = async (e: React.MouseEvent, chatId: string) => {
+  const onTogglePin = useCallback(async (e: React.MouseEvent, chatId: string) => {
     e.preventDefault();
     e.stopPropagation();
     try {
@@ -167,7 +180,7 @@ const ChatHistory = ({ searchQuery }: ChatHistoryProps) => {
     } catch {
       toast.error("Error toggling pin");
     }
-  };
+  }, []);
 
 
   if (isLoading) {
@@ -235,9 +248,6 @@ const ChatHistory = ({ searchQuery }: ChatHistoryProps) => {
   if (!chats?.length) {
     return null;
   }
-
-  const pinnedChats = chats.filter((c) => !!c.pinned);
-  const unpinnedChats = chats.filter((c) => !c.pinned);
 
   return (
     <>

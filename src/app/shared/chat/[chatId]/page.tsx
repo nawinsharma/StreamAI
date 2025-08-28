@@ -208,13 +208,17 @@ export default function SharedChatPage({ params }: { params: Promise<{ chatId: s
                             <Copy className="size-3" />
                           </Action>
                           <Action
-                            onClick={() => toast.success("Message liked")}
+                            onClick={() => {
+                              // Like action without toast
+                            }}
                             label="Like"
                           >
                             <ThumbsUp className="size-3" />
                           </Action>
                           <Action
-                            onClick={() => toast.success("Message disliked")}
+                            onClick={() => {
+                              // Dislike action without toast
+                            }}
                             label="Dislike"
                           >
                             <ThumbsDown className="size-3" />

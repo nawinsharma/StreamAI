@@ -17,15 +17,15 @@ export function AIMessageComponent({ children }: { children: ReactNode }) {
   };
 
   const handleLike = () => {
-    toast.success("Message liked");
+    // Like action without toast
   };
 
   const handleDislike = () => {
-    toast.success("Message disliked");
+    // Dislike action without toast
   };
 
   const handleRedo = () => {
-    toast.success("Regenerating response...");
+    // Regenerate action without toast
   };
 
   return (
@@ -82,15 +82,15 @@ export function AIMessageText(props: MessageTextProps) {
   };
 
   const handleLike = () => {
-    toast.success("Message liked");
+    // Like action without toast
   };
 
   const handleDislike = () => {
-    toast.success("Message disliked");
+    // Dislike action without toast
   };
 
   const handleRedo = () => {
-    toast.success("Regenerating response...");
+    // Regenerate action without toast
   };
 
   return (

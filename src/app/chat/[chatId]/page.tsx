@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Header } from "@/components/ui/Header";
 import { useUser } from "@/context/UserContext";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getChat, toggleChatPublic } from "@/app/actions/chatActions";
+import { getChat, toggleChatPublic, updateChatTitle } from "@/app/actions/chatActions";
 import { FilePreview } from "@/components/ui/file-preview";
 import { AttachmentButton } from "@/components/ui/attachment-button";
 import { ChatImage } from "@/components/ui/chat-image";
@@ -113,6 +113,7 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
   const [pendingInitialMessage, setPendingInitialMessage] = useState<string | null>(null);
   const hasInitialized = useRef(false);
   const searchParams = useSearchParams();
+  const [hasUpdatedTitle, setHasUpdatedTitle] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(scrollToBottom, 200);
@@ -191,6 +192,23 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
     );
     setElements(newElements);
     setTimeout(scrollToBottom, 10);
+
+    if (isNewChat && chat && !hasUpdatedTitle) {
+      const newTitle = prompt.substring(0, 50) + (prompt.length > 50 ? "..." : "");
+      if (chat.title !== newTitle) {
+        try {
+          const updateResult = await updateChatTitle(chatId, newTitle);
+          if (updateResult.success) {
+            setChat(prev => prev ? { ...prev, title: newTitle } : null);
+            setHasUpdatedTitle(true); 
+          }
+        } catch (error) {
+          console.error("Failed to update chat title:", error);
+        }
+      } else {
+        setHasUpdatedTitle(true); 
+      }
+    }
 
     try {
       // Start streaming API call
@@ -314,7 +332,7 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
     } finally {
       setIsLoading(false);
     }
-  }, [chatId, elements, pendingAttachment, scrollToBottom, isLoading, user]);
+  }, [chatId, elements, pendingAttachment, scrollToBottom, isLoading, user, isNewChat, chat, hasUpdatedTitle]);
 
   const fetchChat = useCallback(async () => {
     try {
@@ -406,19 +424,25 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
                         <Copy className="size-3" />
                       </Action>
                       <Action
-                        onClick={() => toast.success("Message liked")}
+                        onClick={() => {
+                          // Like action without toast
+                        }}
                         label="Like"
                       >
                         <ThumbsUp className="size-3" />
                       </Action>
                       <Action
-                        onClick={() => toast.success("Message disliked")}
+                        onClick={() => {
+                          // Dislike action without toast
+                        }}
                         label="Dislike"
                       >
                         <ThumbsDown className="size-3" />
                       </Action>
                       <Action
-                        onClick={() => toast.success("Regenerating response...")}
+                        onClick={() => {
+                          // Regenerate action without toast
+                        }}
                         label="Redo"
                       >
                         <RotateCcw className="size-3" />

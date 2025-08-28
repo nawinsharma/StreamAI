@@ -6,13 +6,17 @@ import prisma from "@/lib/prisma";
 
 export async function getChatsForUser({searchQuery}: {searchQuery?: string | null} = {}) {
   try {
+    const session = await auth.api.getSession({
+      headers: await headers()
+    });
+    
+    if (!session?.user?.id) {
+      return { success: false, error: "Unauthorized" };
+    }
 
-const session = await auth.api.getSession({
-  headers: await headers()
-});
     const chats = await prisma.chat.findMany({
       where: {
-        userId: session?.user.id,
+        userId: session.user.id,
         ...(searchQuery ? {
           OR: [
             { title: { contains: searchQuery, mode: 'insensitive' } },
@@ -20,12 +24,17 @@ const session = await auth.api.getSession({
           ]
         } : {}),
       },
-      include: {
-        messages: {
-          orderBy: {
-            createdAt: "asc",
-          },
-        },
+      select: {
+        id: true,
+        title: true,
+        pinned: true,
+        createdAt: true,
+        updatedAt: true,
+        _count: {
+          select: {
+            messages: true
+          }
+        }
       },
       orderBy: [
         { pinned: 'desc' },
@@ -305,4 +314,49 @@ export async function toggleChatPublic(chatId: string) {
     }
     return { success: false, error: "Failed to toggle public status" };
   }
-} 
+}
+
+export async function updateChatTitle(chatId: string, title: string) {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers()
+    });
+
+    if (!session?.user?.id) {
+      throw new Error("Unauthorized");
+    }
+
+    if (!title || title.trim().length === 0) {
+      throw new Error("Title is required");
+    }
+
+    const chat = await prisma.chat.findFirst({
+      where: { id: chatId, userId: session.user.id },
+      select: { id: true }
+    });
+
+    if (!chat) {
+      throw new Error("Chat not found");
+    }
+
+    const updated = await prisma.chat.update({
+      where: { id: chatId },
+      data: { title: title.trim() }
+    });
+    
+    return { success: true, data: updated };
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message.includes("Unauthorized")) {
+        return { success: false, error: "Unauthorized access" };
+      }
+      if (error.message.includes("Chat not found")) {
+        return { success: false, error: "Chat not found" };
+      }
+      if (error.message.includes("Title is required")) {
+        return { success: false, error: "Title is required" };
+      }
+    }
+    return { success: false, error: "Failed to update chat title" };
+  } 
+}
