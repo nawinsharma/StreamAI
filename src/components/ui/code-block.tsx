@@ -103,7 +103,6 @@ export const CodeBlock = memo(function CodeBlock({
     );
   }
 
-  // Custom dark theme to avoid selection-like appearance
   const customDarkStyle = {
     ...oneDark,
     'pre[class*="language-"]': {
@@ -115,6 +114,20 @@ export const CodeBlock = memo(function CodeBlock({
       ...oneDark['code[class*="language-"]'],
       background: 'transparent',
       color: '#e5e7eb',
+    },
+  };
+
+  const customLightStyle = {
+    ...oneLight,
+    'pre[class*="language-"]': {
+      ...oneLight['pre[class*="language-"]'],
+      background: '#f5ecf9',
+      color: '#171717',
+    },
+    'code[class*="language-"]': {
+      ...oneLight['code[class*="language-"]'],
+      background: 'transparent',
+      color: '#171717',
     },
   };
 
@@ -166,7 +179,7 @@ export const CodeBlock = memo(function CodeBlock({
       <div className="relative overflow-hidden rounded-b-lg">
         <SyntaxHighlighter
           language={language || "text"}
-          style={isDark ? customDarkStyle : oneLight}
+          style={isDark ? customDarkStyle : customLightStyle}
           customStyle={{
             margin: 0,
             borderRadius: 0,
@@ -176,7 +189,10 @@ export const CodeBlock = memo(function CodeBlock({
             borderTop: "none",
             background: isDark 
               ? "rgb(15 15 15)" 
-              : "rgb(249 250 251)",
+              : "#f5ecf9",
+            color: isDark 
+              ? "#e5e7eb" 
+              : "#171717",
             fontSize: '14px',
             fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
             overflowX: 'auto',
