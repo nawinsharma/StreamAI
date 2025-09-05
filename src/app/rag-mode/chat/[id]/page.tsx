@@ -5,7 +5,6 @@ import { useParams, useRouter } from "next/navigation";
 import { ChatInput } from "@/components/chat/chat-input";
 import { AISkeletonLoading } from "@/components/message";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Header } from "@/components/ui/Header";
 import { ArrowLeft, MessageCircle, Copy, ThumbsUp, ThumbsDown, RotateCcw } from "lucide-react";
 import { Actions, Action } from "@/components/ui/actions";
@@ -525,6 +524,9 @@ const RagChatPage = () => {
     <div className="h-screen bg-background flex flex-col">
       {/* Header */}
       <Header 
+        showBackButton={true}
+        backButtonHref="/rag-mode"
+        backButtonLabel="Back"
         shareButton={
           chatData && (
             <ShareButton
@@ -539,17 +541,6 @@ const RagChatPage = () => {
       
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-h-0">
-        {/* Back Button */}
-        <div className="border-b border-border bg-background p-4">
-          <div className="max-w-4xl mx-auto">
-            <Link href="/rag-mode">
-              <Badge variant="outline" className="cursor-pointer hover:bg-muted">
-                <ArrowLeft className="w-3 h-3 mr-1" />
-                Back to RAG Mode
-              </Badge>
-            </Link>
-          </div>
-        </div>
 
         {/* Messages Container */}
         <div className="flex-1 overflow-hidden">

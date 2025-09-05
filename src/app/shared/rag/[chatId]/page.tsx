@@ -3,7 +3,6 @@
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { getPublicRagChat } from "@/app/actions/ragActions";
-import { Header } from "@/components/ui/Header";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Lock, User, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -125,13 +124,10 @@ export default function SharedRagChatPage({ params }: { params: Promise<{ chatId
 
   if (loading) {
     return (
-      <div className="h-screen bg-background flex flex-col">
-        <Header />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading shared chat...</p>
-          </div>
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading shared chat...</p>
         </div>
       </div>
     );
@@ -139,44 +135,33 @@ export default function SharedRagChatPage({ params }: { params: Promise<{ chatId
 
   if (error || !chatData) {
     return (
-      <div className="h-screen bg-background flex flex-col">
-        <Header />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center max-w-md mx-auto">
-            <div className="mx-auto w-16 h-16 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center mb-4">
-              <Lock className="w-8 h-8 text-red-600 dark:text-red-400" />
-            </div>
-            <h2 className="text-xl font-semibold mb-2">Chat Not Available</h2>
-            <p className="text-gray-500 dark:text-gray-400 mb-6">
-              {error || "This chat is not available for public viewing."}
-            </p>
-            <Link href="/">
-              <Button>
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Go Home
-              </Button>
-            </Link>
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto">
+          <div className="mx-auto w-16 h-16 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center mb-4">
+            <Lock className="w-8 h-8 text-red-600 dark:text-red-400" />
           </div>
+          <h2 className="text-xl font-semibold mb-2">Chat Not Available</h2>
+          <p className="text-gray-500 dark:text-gray-400 mb-6">
+            {error || "This chat is not available for public viewing."}
+          </p>
+          <Link href="/">
+            <Button>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Go Home
+            </Button>
+          </Link>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-screen bg-background flex flex-col">
-      <Header />
-      
+    <>
       {/* Chat Info Header */}
       <div className="border-b border-border bg-background/50 backdrop-blur-sm">
         <div className="max-w-4xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Link href="/">
-                <Button variant="ghost" size="sm">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back
-                </Button>
-              </Link>
               <div>
                 <h1 className="text-lg font-semibold">{chatData.title}</h1>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -300,6 +285,6 @@ export default function SharedRagChatPage({ params }: { params: Promise<{ chatId
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

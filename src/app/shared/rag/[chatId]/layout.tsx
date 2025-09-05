@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Header } from "@/components/ui/Header";
 
 export const metadata: Metadata = {
   robots: {
@@ -12,5 +13,14 @@ export default function SharedRagChatLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return children;
+  return (
+    <div className="h-screen bg-background flex flex-col">
+      <Header 
+        showBackButton={true}
+        backButtonHref="/"
+        backButtonLabel="Back"
+      />
+      {children}
+    </div>
+  );
 }

@@ -27,12 +27,17 @@ import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
 import { Brain } from "lucide-react";
 import { useState } from "react";
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
 
 interface HeaderProps {
   shareButton?: React.ReactNode;
+  showBackButton?: boolean;
+  backButtonHref?: string;
+  backButtonLabel?: string;
 }
 
-export function Header({ shareButton }: HeaderProps = {}) {
+export function Header({ shareButton, showBackButton = false, backButtonHref = "/", backButtonLabel = "Back" }: HeaderProps = {}) {
   const router = useRouter();
   const user = useUser();
   const [showSignOutDialog, setShowSignOutDialog] = useState(false);
@@ -69,9 +74,23 @@ export function Header({ shareButton }: HeaderProps = {}) {
       <header className="relative z-40 bg-background/20 backdrop-blur-md border-none shadow-none">
         <div className="max-w-7xl mx-auto flex items-center justify-between w-full px-4 sm:px-6 py-4 h-16 sm:h-20">
           
-          {/* Left side - Logo/Brand (placeholder for future content) */}
+          {/* Left side - Back Button or Logo/Brand */}
           <div className="flex items-center flex-shrink-0">
-            {/* This space is reserved for logo or brand */}
+            {showBackButton ? (
+              <Link href={backButtonHref}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-sm font-medium bg-background/50 backdrop-blur-sm border-border/30"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  {backButtonLabel}
+                </Button>
+              </Link>
+            ) : (
+              /* This space is reserved for logo or brand */
+              null
+            )}
           </div>
 
           {/* Right side - Controls */}
