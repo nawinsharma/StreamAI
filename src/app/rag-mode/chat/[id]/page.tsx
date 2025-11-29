@@ -135,7 +135,7 @@ const RagChatPage = () => {
               <div className="px-6 py-4 rounded-3xl rounded-bl-lg text-gray-900 dark:text-gray-100">
                 {msg.sources && msg.sources.length > 0 ? (
                   <div className="space-y-4">
-                    <div>{msg.content}</div>
+                    <Markdown>{msg.content}</Markdown>
                     <div className="border-t pt-3 mt-3">
                       <p className="text-sm font-medium mb-2 text-gray-600 dark:text-gray-400">Sources:</p>
                       <div className="space-y-2">

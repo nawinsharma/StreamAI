@@ -1,35 +1,31 @@
 import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
-import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
+import { OpenAIEmbeddings } from "@langchain/openai";
 import { QdrantVectorStore } from "@langchain/qdrant";
 import { Document } from "@langchain/core/documents";
+import { QdrantClient } from "@qdrant/js-client-rest";
 import axios from "axios";
 import { parse } from "node-html-parser";
 import { Innertube } from "youtubei.js";
+import { RAG_LIMITS } from "./limits";
 
-// Validate Google API key
-const validateGoogleAPIKey = () => {
-  const apiKeys = [
-    process.env.GOOGLE_API_KEY,
-    process.env.GOOGLE_AI_API_KEY,
-    process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-    process.env.GEMINI_API_KEY
-  ];
+// Validate OpenAI API key
+const validateOpenAIAPIKey = () => {
+  const apiKey = process.env.OPENAI_API_KEY;
   
-  const validKey = apiKeys.find(key => key && key.length > 0);
-  
-  if (!validKey) {
-    throw new Error('No valid Google API key found. Please set one of: GOOGLE_API_KEY, GOOGLE_AI_API_KEY, GOOGLE_GENERATIVE_AI_API_KEY, or GEMINI_API_KEY');
+  if (!apiKey || apiKey.length === 0) {
+    throw new Error('No valid OpenAI API key found. Please set OPENAI_API_KEY in your environment variables.');
   }
   
-  return validKey;
+  return apiKey;
 };
 
-const GOOGLE_API_KEY = validateGoogleAPIKey();
+const OPENAI_API_KEY = validateOpenAIAPIKey();
 
-const embeddings = new GoogleGenerativeAIEmbeddings({
-  apiKey: GOOGLE_API_KEY,
-  model: "models/embedding-001",
+// Initialize OpenAI embeddings
+const embeddings = new OpenAIEmbeddings({
+  openAIApiKey: OPENAI_API_KEY,
+  modelName: "text-embedding-3-small", // Using the smaller, faster model
 });
 
 const textSplitter = new RecursiveCharacterTextSplitter({
@@ -37,22 +33,63 @@ const textSplitter = new RecursiveCharacterTextSplitter({
   chunkOverlap: 200,
 });
 
+const createQdrantClient = () => {
+  return new QdrantClient({
+    url: process.env.QDRANT_URL,
+    apiKey: process.env.QDRANT_API_KEY,
+    checkCompatibility: false,
+  } as ConstructorParameters<typeof QdrantClient>[0] & { checkCompatibility: boolean });
+};
+
 export const indexPdf = async (file: File, collectionName: string) => {
   try {
+    // Check file size limit
+    if (file.size > RAG_LIMITS.PDF_MAX_FILE_SIZE) {
+      throw new Error(`PDF file is too large. Maximum size is ${RAG_LIMITS.PDF_MAX_FILE_SIZE / (1024 * 1024)}MB.`);
+    }
+
     // Load PDF
     const loader = new PDFLoader(file);
     const docs = await loader.load();
 
+    // Check page limit
+    if (docs.length > RAG_LIMITS.PDF_MAX_PAGES) {
+      throw new Error(`PDF has too many pages (${docs.length}). Maximum is ${RAG_LIMITS.PDF_MAX_PAGES} pages.`);
+    }
+
     // Split documents
     const splitDocs = await textSplitter.splitDocuments(docs);
+
+    // Check chunk limit to prevent too many API calls
+    if (splitDocs.length > RAG_LIMITS.PDF_MAX_CHUNKS) {
+      console.warn(`PDF has ${splitDocs.length} chunks, limiting to ${RAG_LIMITS.PDF_MAX_CHUNKS} chunks to prevent API overload.`);
+      // Truncate to limit
+      const limitedDocs = splitDocs.slice(0, RAG_LIMITS.PDF_MAX_CHUNKS);
+      
+      // Create vector store with limited chunks
+      await QdrantVectorStore.fromDocuments(
+        limitedDocs,
+        embeddings,
+        {
+          client: createQdrantClient(),
+          collectionName,
+        }
+      );
+
+      return {
+        success: true,
+        documentsCount: limitedDocs.length,
+        collectionName,
+        warning: `Document was truncated to ${RAG_LIMITS.PDF_MAX_CHUNKS} chunks to prevent API overload.`,
+      };
+    }
 
     // Create vector store
     await QdrantVectorStore.fromDocuments(
       splitDocs,
       embeddings,
       {
-        url: process.env.QDRANT_URL,
-        apiKey: process.env.QDRANT_API_KEY,
+        client: createQdrantClient(),
         collectionName,
       }
     );
@@ -86,7 +123,7 @@ export const indexWebsite = async (url: string, collectionName: string) => {
     
     // Extract text content from the page
     const bodyElement = root.querySelector('body');
-    const pageText = bodyElement ? bodyElement.innerText.replace(/\s+/g, ' ').trim() : '';
+    let pageText = bodyElement ? bodyElement.innerText.replace(/\s+/g, ' ').trim() : '';
     
     // Get title
     const titleElement = root.querySelector('title');
@@ -97,6 +134,12 @@ export const indexWebsite = async (url: string, collectionName: string) => {
     }
 
     console.log(`📄 Extracted ${pageText.length} characters from: ${title}`);
+
+    // Check character limit
+    if (pageText.length > RAG_LIMITS.WEBSITE_MAX_CHARACTERS) {
+      console.warn(`Website content is too long (${pageText.length} chars), truncating to ${RAG_LIMITS.WEBSITE_MAX_CHARACTERS} characters.`);
+      pageText = pageText.substring(0, RAG_LIMITS.WEBSITE_MAX_CHARACTERS);
+    }
 
     // Create document from extracted text
     const doc = new Document({
@@ -113,13 +156,35 @@ export const indexWebsite = async (url: string, collectionName: string) => {
     
     console.log(`📖 Created ${splitDocs.length} chunks from website`);
 
+    // Check chunk limit
+    if (splitDocs.length > RAG_LIMITS.WEBSITE_MAX_CHUNKS) {
+      console.warn(`Website has ${splitDocs.length} chunks, limiting to ${RAG_LIMITS.WEBSITE_MAX_CHUNKS} chunks to prevent API overload.`);
+      const limitedDocs = splitDocs.slice(0, RAG_LIMITS.WEBSITE_MAX_CHUNKS);
+      
+      await QdrantVectorStore.fromDocuments(
+        limitedDocs,
+        embeddings,
+        {
+          client: createQdrantClient(),
+          collectionName,
+        }
+      );
+
+      return {
+        success: true,
+        documentsCount: limitedDocs.length,
+        collectionName,
+        sourceUrl: url,
+        warning: `Content was truncated to ${RAG_LIMITS.WEBSITE_MAX_CHUNKS} chunks to prevent API overload.`,
+      };
+    }
+
     // Create vector store
     await QdrantVectorStore.fromDocuments(
       splitDocs,
       embeddings,
       {
-        url: process.env.QDRANT_URL,
-        apiKey: process.env.QDRANT_API_KEY,
+        client: createQdrantClient(),
         collectionName,
       }
     );
@@ -138,6 +203,11 @@ export const indexWebsite = async (url: string, collectionName: string) => {
 
 export const indexText = async (text: string, title: string, collectionName: string) => {
   try {
+    // Check character limit
+    if (text.length > RAG_LIMITS.TEXT_MAX_CHARACTERS) {
+      throw new Error(`Text content is too long (${text.length} characters). Maximum is ${RAG_LIMITS.TEXT_MAX_CHARACTERS} characters.`);
+    }
+
     // Create document from text
     const doc = new Document({
       pageContent: text,
@@ -147,13 +217,35 @@ export const indexText = async (text: string, title: string, collectionName: str
     // Split document
     const splitDocs = await textSplitter.splitDocuments([doc]);
 
+    // Check chunk limit
+    if (splitDocs.length > RAG_LIMITS.TEXT_MAX_CHUNKS) {
+      console.warn(`Text has ${splitDocs.length} chunks, limiting to ${RAG_LIMITS.TEXT_MAX_CHUNKS} chunks to prevent API overload.`);
+      const limitedDocs = splitDocs.slice(0, RAG_LIMITS.TEXT_MAX_CHUNKS);
+      
+      await QdrantVectorStore.fromDocuments(
+        limitedDocs,
+        embeddings,
+        {
+          client: createQdrantClient(),
+          collectionName,
+        }
+      );
+
+      return {
+        success: true,
+        documentsCount: limitedDocs.length,
+        collectionName,
+        title,
+        warning: `Content was truncated to ${RAG_LIMITS.TEXT_MAX_CHUNKS} chunks to prevent API overload.`,
+      };
+    }
+
     // Create vector store
     await QdrantVectorStore.fromDocuments(
       splitDocs,
       embeddings,
       {
-        url: process.env.QDRANT_URL,
-        apiKey: process.env.QDRANT_API_KEY,
+        client: createQdrantClient(),
         collectionName,
       }
     );
@@ -206,6 +298,12 @@ export const indexYoutube = async (url: string, collectionName: string) => {
           .join(' ')
           .replace(/\s+/g, ' ')
           .trim();
+        
+        // Limit transcript length to prevent API overload
+        if (transcript.length > RAG_LIMITS.YOUTUBE_MAX_TRANSCRIPT_LENGTH) {
+          console.warn(`Transcript is too long (${transcript.length} chars), truncating to ${RAG_LIMITS.YOUTUBE_MAX_TRANSCRIPT_LENGTH} characters.`);
+          transcript = transcript.substring(0, RAG_LIMITS.YOUTUBE_MAX_TRANSCRIPT_LENGTH);
+        }
       }
     } catch {
       console.log("📝 No transcript available, using description only");
@@ -254,13 +352,37 @@ export const indexYoutube = async (url: string, collectionName: string) => {
     
     console.log(`📖 Created ${splitDocs.length} chunks from YouTube video`);
 
+    // Check chunk limit
+    if (splitDocs.length > RAG_LIMITS.YOUTUBE_MAX_CHUNKS) {
+      console.warn(`YouTube video has ${splitDocs.length} chunks, limiting to ${RAG_LIMITS.YOUTUBE_MAX_CHUNKS} chunks to prevent API overload.`);
+      const limitedDocs = splitDocs.slice(0, RAG_LIMITS.YOUTUBE_MAX_CHUNKS);
+      
+      await QdrantVectorStore.fromDocuments(
+        limitedDocs,
+        embeddings,
+        {
+          client: createQdrantClient(),
+          collectionName,
+        }
+      );
+
+      return {
+        success: true,
+        documentsCount: limitedDocs.length,
+        collectionName,
+        sourceUrl: url,
+        title,
+        hasTranscript: transcript.length > 0,
+        warning: `Content was truncated to ${RAG_LIMITS.YOUTUBE_MAX_CHUNKS} chunks to prevent API overload.`,
+      };
+    }
+
     // Create vector store
     await QdrantVectorStore.fromDocuments(
       splitDocs,
       embeddings,
       {
-        url: process.env.QDRANT_URL,
-        apiKey: process.env.QDRANT_API_KEY,
+        client: createQdrantClient(),
         collectionName,
       }
     );

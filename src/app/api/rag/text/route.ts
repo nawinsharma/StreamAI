@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { indexText } from "@/lib/rag/indexing";
 import { generateSummary } from "@/lib/rag/chat";
+import { RAG_LIMITS } from "@/lib/rag/limits";
 import slugify from "slugify";
 
 export async function POST(req: NextRequest) {
@@ -19,6 +20,14 @@ export async function POST(req: NextRequest) {
     if (text.trim().length < 10) {
       return NextResponse.json(
         { error: "Text content is too short (minimum 10 characters)" },
+        { status: 400 }
+      );
+    }
+
+    // Check character limit
+    if (text.length > RAG_LIMITS.TEXT_MAX_CHARACTERS) {
+      return NextResponse.json(
+        { error: `Text content is too long (${text.length} characters). Maximum is ${RAG_LIMITS.TEXT_MAX_CHARACTERS} characters.` },
         { status: 400 }
       );
     }

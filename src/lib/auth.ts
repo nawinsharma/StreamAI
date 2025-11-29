@@ -40,7 +40,7 @@ export const auth = betterAuth({
          },
          "/api/rag/*": {
             window: 60,
-            max: 20, // Limit RAG operations
+            max: 5, // Limit RAG operations to prevent API overload (5 per minute)
          },
          "/api/chat": {
             window: 60,

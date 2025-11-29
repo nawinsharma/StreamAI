@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { indexPdf } from "@/lib/rag/indexing";
 import { generateSummary as generateSummaryFromChat } from "@/lib/rag/chat";
+import { RAG_LIMITS } from "@/lib/rag/limits";
 import slugify from "slugify";
 
 export async function POST(req: NextRequest) {
@@ -18,6 +19,14 @@ export async function POST(req: NextRequest) {
     if (file.type !== "application/pdf") {
       return NextResponse.json(
         { error: "Invalid file type. Please upload a PDF file." },
+        { status: 400 }
+      );
+    }
+
+    // Check file size limit
+    if (file.size > RAG_LIMITS.PDF_MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { error: `PDF file is too large. Maximum size is ${RAG_LIMITS.PDF_MAX_FILE_SIZE / (1024 * 1024)}MB.` },
         { status: 400 }
       );
     }

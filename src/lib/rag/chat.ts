@@ -1,15 +1,40 @@
-import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
+import { OpenAIEmbeddings } from "@langchain/openai";
 import { QdrantVectorStore } from "@langchain/qdrant";
+import { QdrantClient } from "@qdrant/js-client-rest";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateText } from "ai";
 
-const embeddings = new GoogleGenerativeAIEmbeddings({
-  apiKey: process.env.GOOGLE_API_KEY,
-  model: "models/embedding-001",
+// Validate OpenAI API key
+const validateOpenAIAPIKey = () => {
+  const apiKey = process.env.OPENAI_API_KEY;
+  
+  if (!apiKey || apiKey.length === 0) {
+    throw new Error('No valid OpenAI API key found. Please set OPENAI_API_KEY in your environment variables.');
+  }
+  
+  return apiKey;
+};
+
+const OPENAI_API_KEY = validateOpenAIAPIKey();
+
+// Initialize OpenAI embeddings
+const embeddings = new OpenAIEmbeddings({
+  openAIApiKey: OPENAI_API_KEY,
+  modelName: "text-embedding-3-small", // Using the smaller, faster model
 });
 
-// Initialize Google provider for AI SDK
-const google = createGoogleGenerativeAI({ apiKey: process.env.GOOGLE_API_KEY });
+// Initialize Google provider for AI SDK with v1 API
+const google = createGoogleGenerativeAI({ 
+  apiKey: process.env.GOOGLE_API_KEY,
+});
+
+const createQdrantClient = () => {
+  return new QdrantClient({
+    url: process.env.QDRANT_URL,
+    apiKey: process.env.QDRANT_API_KEY,
+    checkCompatibility: false, // Skip version check to avoid compatibility errors
+  } as ConstructorParameters<typeof QdrantClient>[0] & { checkCompatibility: boolean });
+};
 
 export interface RagChatResponse {
   response: string;
@@ -33,8 +58,7 @@ export const chatWithCollection = async (
     const vectorStore = await QdrantVectorStore.fromExistingCollection(
       embeddings,
       {
-        url: process.env.QDRANT_URL,
-        apiKey: process.env.QDRANT_API_KEY,
+        client: createQdrantClient(),
         collectionName,
       }
     );
@@ -78,7 +102,7 @@ Guidelines:
 
     // Generate response using Google via AI SDK
     const { text } = await generateText({
-      model: google('models/gemini-1.5-pro'),
+      model: google('gemini-2.5-flash'), // Using same model as city-parser
       system: systemPrompt,
       prompt,
       temperature: 0.1,
@@ -115,8 +139,7 @@ export const generateSummary = async (collectionName: string): Promise<string> =
     const vectorStore = await QdrantVectorStore.fromExistingCollection(
       embeddings,
       {
-        url: process.env.QDRANT_URL,
-        apiKey: process.env.QDRANT_API_KEY,
+        client: createQdrantClient(),
         collectionName,
       }
     );
@@ -136,7 +159,7 @@ export const generateSummary = async (collectionName: string): Promise<string> =
 
     // Generate summary using Google via AI SDK
     const { text } = await generateText({
-      model: google('models/gemini-1.5-pro'),
+      model: google('gemini-2.5-flash'), // Using same model as city-parser
       system: "You are an AI assistant that creates concise, informative summaries of documents. Create a summary that captures the main topics, key points, and overall theme of the content.",
       prompt: `Please create a concise summary of the following content:\n\n${content}`,
       temperature: 0.3,

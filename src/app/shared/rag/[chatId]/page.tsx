@@ -217,7 +217,7 @@ export default function SharedRagChatPage({ params }: { params: Promise<{ chatId
                       <div className="px-6 py-4 rounded-3xl rounded-bl-lg text-gray-900 dark:text-gray-100">
                         {message.sources && message.sources.length > 0 ? (
                           <div className="space-y-4">
-                            <div>{message.content}</div>
+                            <Markdown>{message.content}</Markdown>
                             <div className="border-t pt-3 mt-3">
                               <p className="text-sm font-medium mb-2 text-gray-600 dark:text-gray-400">Sources:</p>
                               <div className="space-y-2">
