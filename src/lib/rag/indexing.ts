@@ -3,7 +3,6 @@ import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
 import { QdrantVectorStore } from "@langchain/qdrant";
 import { Document } from "@langchain/core/documents";
-import { QdrantClient } from "@qdrant/js-client-rest";
 import axios from "axios";
 import { parse } from "node-html-parser";
 import { Innertube } from "youtubei.js";
@@ -27,7 +26,7 @@ const EMBEDDING_MODEL = process.env.GOOGLE_EMBEDDING_MODEL || "gemini-embedding-
 
 const embeddings = new GoogleGenerativeAIEmbeddings({
   apiKey: GOOGLE_API_KEY,
-  model: EMBEDDING_MODEL,
+  modelName: EMBEDDING_MODEL,
 });
 
 const textSplitter = new RecursiveCharacterTextSplitter({
@@ -35,12 +34,9 @@ const textSplitter = new RecursiveCharacterTextSplitter({
   chunkOverlap: 200,
 });
 
-const createQdrantClient = () => {
-  return new QdrantClient({
-    url: process.env.QDRANT_URL,
-    apiKey: process.env.QDRANT_API_KEY,
-    checkCompatibility: false,
-  } as ConstructorParameters<typeof QdrantClient>[0] & { checkCompatibility: boolean });
+const qdrantConfig = {
+  url: process.env.QDRANT_URL,
+  apiKey: process.env.QDRANT_API_KEY,
 };
 
 export const indexPdf = async (file: File, collectionName: string) => {
@@ -73,7 +69,7 @@ export const indexPdf = async (file: File, collectionName: string) => {
         limitedDocs,
         embeddings,
         {
-          client: createQdrantClient(),
+          ...qdrantConfig,
           collectionName,
         }
       );
@@ -91,7 +87,7 @@ export const indexPdf = async (file: File, collectionName: string) => {
       splitDocs,
       embeddings,
       {
-        client: createQdrantClient(),
+        ...qdrantConfig,
         collectionName,
       }
     );
@@ -167,7 +163,7 @@ export const indexWebsite = async (url: string, collectionName: string) => {
         limitedDocs,
         embeddings,
         {
-          client: createQdrantClient(),
+          ...qdrantConfig,
           collectionName,
         }
       );
@@ -186,7 +182,7 @@ export const indexWebsite = async (url: string, collectionName: string) => {
       splitDocs,
       embeddings,
       {
-        client: createQdrantClient(),
+        ...qdrantConfig,
         collectionName,
       }
     );
@@ -228,7 +224,7 @@ export const indexText = async (text: string, title: string, collectionName: str
         limitedDocs,
         embeddings,
         {
-          client: createQdrantClient(),
+          ...qdrantConfig,
           collectionName,
         }
       );
@@ -247,7 +243,7 @@ export const indexText = async (text: string, title: string, collectionName: str
       splitDocs,
       embeddings,
       {
-        client: createQdrantClient(),
+        ...qdrantConfig,
         collectionName,
       }
     );
@@ -363,7 +359,7 @@ export const indexYoutube = async (url: string, collectionName: string) => {
         limitedDocs,
         embeddings,
         {
-          client: createQdrantClient(),
+          ...qdrantConfig,
           collectionName,
         }
       );
@@ -384,7 +380,7 @@ export const indexYoutube = async (url: string, collectionName: string) => {
       splitDocs,
       embeddings,
       {
-        client: createQdrantClient(),
+        ...qdrantConfig,
         collectionName,
       }
     );
