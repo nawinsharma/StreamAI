@@ -1,13 +1,14 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, X, Brain, BookOpen } from "lucide-react";
+import { Search, Plus, X, Brain, BookOpen, Mic, Languages } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import ChatHistory from "./chat-history";
 import { SidebarToggle } from "./sidebar-toggle";
 import Image from "next/image";
+import { SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
 
 interface MainSectionProps {
   isMobile?: boolean;
@@ -67,6 +68,37 @@ const MainSection = ({ isMobile = false }: MainSectionProps) => {
           </span>
         </Button>
       </Link>
+
+      {/* Tools Section */}
+      <div className="px-4 py-2 w-full group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:p-0 transition-all">
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2 py-1 group-data-[collapsible=icon]:hidden">
+            Tools
+          </SidebarGroupLabel>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link href="/voice-assistant" className="w-full">
+                  <Mic className="size-4 mr-2" />
+                  <span className="group-data-[collapsible=icon]:hidden">
+                    Voice Assistant
+                  </span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link href="/translate" className="w-full">
+                  <Languages className="size-4 mr-2" />
+                  <span className="group-data-[collapsible=icon]:hidden">
+                    Translate
+                  </span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
+      </div>
 
       {/* Search Input */}
       <div className="px-4 py-2 w-full group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:p-0 transition-all">
