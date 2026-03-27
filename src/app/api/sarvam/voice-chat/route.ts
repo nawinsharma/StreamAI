@@ -2,6 +2,41 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 
+const SARVAM_TTS_MAX_CHARS = 500;
+const VOICE_REPLY_TARGET_CHARS = 350;
+const ALLOWED_SPEAKERS = new Set([
+  "anushka",
+  "abhilash",
+  "manisha",
+  "vidya",
+  "arya",
+  "karun",
+  "hitesh",
+]);
+
+function stripThinkingBlocks(text: string): string {
+  if (!text) return "";
+  return text
+    .replace(/<think>[\s\S]*?<\/think>/gi, "")
+    .replace(/^```[\s\S]*?```$/gim, "")
+    .trim();
+}
+
+function clampForTts(text: string, maxChars: number): string {
+  const clean = text.trim();
+  if (clean.length <= maxChars) return clean;
+  const clipped = clean.slice(0, maxChars);
+  const sentenceBoundary = Math.max(
+    clipped.lastIndexOf("."),
+    clipped.lastIndexOf("!"),
+    clipped.lastIndexOf("?")
+  );
+  if (sentenceBoundary > maxChars * 0.6) {
+    return clipped.slice(0, sentenceBoundary + 1).trim();
+  }
+  return `${clipped.slice(0, maxChars - 3).trim()}...`;
+}
+
 export async function POST(req: NextRequest) {
   try {
     // Check authentication
@@ -13,7 +48,8 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const audioFile = formData.get("audio") as File;
     let languageCode = formData.get("language_code") as string || "unknown";
-    const speaker = formData.get("speaker") as string || "anushka";
+    const requestedSpeaker = (formData.get("speaker") as string) || "anushka";
+    const speaker = ALLOWED_SPEAKERS.has(requestedSpeaker) ? requestedSpeaker : "anushka";
     const chatHistory = formData.get("chat_history") ? JSON.parse(formData.get("chat_history") as string) : [];
 
     if (!audioFile) {
@@ -79,7 +115,12 @@ export async function POST(req: NextRequest) {
 
     // Step 2: Chat with Sarvam-M
     // Add system prompt to ensure response in the same language
-    const systemPrompt = `You are a helpful AI assistant. IMPORTANT: Always respond in ${targetLanguage}. Match the language of the user's input exactly. If the user speaks in Hindi (हिंदी), respond ONLY in Hindi. If the user speaks in English, respond ONLY in English. Never respond in a different language than the user's input. Always use the exact same language as the user's message.`;
+    const systemPrompt = `You are a helpful AI assistant. IMPORTANT: Always respond in ${targetLanguage}. Match the language of the user's input exactly. If the user speaks in Hindi (हिंदी), respond ONLY in Hindi. If the user speaks in English, respond ONLY in English. Never respond in a different language than the user's input. Always use the exact same language as the user's message.
+
+For voice output:
+- Return ONLY the final answer, no reasoning, no analysis, no tags.
+- Never output <think>...</think> or markdown code blocks.
+- Keep the response concise and natural for speech: 1-3 short sentences, ideally under ${VOICE_REPLY_TARGET_CHARS} characters.`;
 
     // Filter out any existing system messages and add the current language-specific one
     const filteredHistory = chatHistory.filter((msg: { role?: string }) => msg.role !== "system");
@@ -112,7 +153,12 @@ export async function POST(req: NextRequest) {
     }
 
     const chatData = await chatResponse.json();
-    const assistantMessage = chatData.choices[0]?.message?.content || "";
+    const rawAssistantMessage = chatData.choices[0]?.message?.content || "";
+    const assistantMessage = stripThinkingBlocks(rawAssistantMessage);
+    const safeTtsInput = clampForTts(
+      assistantMessage || "Sorry, I could not generate a response.",
+      SARVAM_TTS_MAX_CHARS
+    );
 
     // Step 3: Text-to-Speech (use detected language from STT)
     const ttsResponse = await fetch("https://api.sarvam.ai/text-to-speech", {
@@ -122,7 +168,7 @@ export async function POST(req: NextRequest) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        inputs: [assistantMessage],
+        inputs: [safeTtsInput],
         target_language_code: detectedLanguage,
         model: "bulbul:v2",
         speaker,
