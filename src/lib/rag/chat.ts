@@ -1,31 +1,33 @@
-import { OpenAIEmbeddings } from "@langchain/openai";
+import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
 import { QdrantVectorStore } from "@langchain/qdrant";
 import { QdrantClient } from "@qdrant/js-client-rest";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateText } from "ai";
 
-// Validate OpenAI API key
-const validateOpenAIAPIKey = () => {
-  const apiKey = process.env.OPENAI_API_KEY;
+// Validate Google API key
+const validateGoogleAPIKey = () => {
+  const apiKey = process.env.GOOGLE_API_KEY;
   
   if (!apiKey || apiKey.length === 0) {
-    throw new Error('No valid OpenAI API key found. Please set OPENAI_API_KEY in your environment variables.');
+    throw new Error('No valid Google API key found. Please set GOOGLE_API_KEY in your environment variables.');
   }
   
   return apiKey;
 };
 
-const OPENAI_API_KEY = validateOpenAIAPIKey();
+const GOOGLE_API_KEY = validateGoogleAPIKey();
 
-// Initialize OpenAI embeddings
-const embeddings = new OpenAIEmbeddings({
-  openAIApiKey: OPENAI_API_KEY,
-  modelName: "text-embedding-3-small", // Using the smaller, faster model
+// Initialize Google embeddings
+const EMBEDDING_MODEL = process.env.GOOGLE_EMBEDDING_MODEL || "gemini-embedding-001";
+
+const embeddings = new GoogleGenerativeAIEmbeddings({
+  apiKey: GOOGLE_API_KEY,
+  model: EMBEDDING_MODEL,
 });
 
 // Initialize Google provider for AI SDK with v1 API
 const google = createGoogleGenerativeAI({ 
-  apiKey: process.env.GOOGLE_API_KEY,
+  apiKey: GOOGLE_API_KEY,
 });
 
 const createQdrantClient = () => {
