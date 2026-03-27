@@ -9,10 +9,12 @@
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
-
+.agents
 # testing
 /coverage
-
+.agents
+.cursor
+.claude
 # next.js
 /.next/
 /out/
