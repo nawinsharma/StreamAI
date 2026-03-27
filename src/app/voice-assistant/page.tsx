@@ -285,6 +285,7 @@ export default function VoiceAssistantPage() {
                   defaultValue="anushka"
                   onValueChange={setSpeaker}
                   disabled={isRecording || isProcessing}
+                  languageCode={languageCode}
                 />
               </div>
             </CardContent>
