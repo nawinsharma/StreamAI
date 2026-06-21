@@ -25,6 +25,7 @@ export default function UserProviderWrapper({ children, initialUser }: UserProvi
                email: session.data.user.email,
                name: session.data.user.name || "",
                emailVerified: session.data.user.emailVerified,
+               isPremiumUser: Boolean((session.data.user as { isPremiumUser?: boolean }).isPremiumUser),
                image: session.data.user.image || null,
                createdAt: session.data.user.createdAt,
                updatedAt: session.data.user.updatedAt,

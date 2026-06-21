@@ -1,5 +1,7 @@
-import { streamText, CoreMessage } from "ai";
+import { streamText, CoreMessage, LanguageModel } from "ai";
 import { google } from "@ai-sdk/google";
+import { anthropic } from "@ai-sdk/anthropic";
+import { getModelById } from "./models";
 import { getEnhancedWeather } from "./ai-tools/enhanced-weather";
 import prisma from "./prisma";
 import { searchMemoriesAction, addMemoryAction } from "@/app/actions/memories";
@@ -9,6 +11,7 @@ export interface ChatRequest {
   messages: CoreMessage[];
   chatId?: string;
   userId?: string;
+  model?: string; // already validated/allowed by the route; undefined => default
   attachmentMeta?: {
     name: string;
     mimeType: string;
@@ -111,6 +114,23 @@ async function getConversationHistory(chatId: string): Promise<CoreMessage[]> {
     console.error("Error fetching conversation history:", error);
     return [];
   }
+}
+
+/**
+ * Resolves the AI SDK language model for a request.
+ * Anthropic models (premium) are used as selected; otherwise we keep the
+ * existing Google behavior (gemini-1.5-pro for vision, gemini-2.5-flash for text).
+ */
+function resolveLanguageModel(
+  modelId: string | undefined,
+  useVisionModel: boolean
+): LanguageModel {
+  const selected = getModelById(modelId);
+  if (selected?.provider === "anthropic") {
+    return anthropic(selected.id);
+  }
+  const googleModel = useVisionModel ? "gemini-1.5-pro" : "gemini-2.5-flash";
+  return google(googleModel);
 }
 
 /**
@@ -219,12 +239,12 @@ export async function handleAIChatRequest(
 
   console.log(`[Context] Sending ${messagesToSend.length} messages to AI model (${conversationHistory.length} from history + ${request.messages.length} current + memory context: ${memoryContext ? 'yes' : 'no'})`);
 
-  // Use vision model for images, regular model for text
-  const modelName = useVisionModel ? "gemini-1.5-pro" : "gemini-2.5-flash";
+  // Resolve provider/model (Anthropic for premium selections, Google otherwise)
+  const model = resolveLanguageModel(request.model, useVisionModel);
 
   try {
     const result = await streamText({
-      model: google(modelName),
+      model,
       messages: messagesToSend,
       tools: {
         weather: {
