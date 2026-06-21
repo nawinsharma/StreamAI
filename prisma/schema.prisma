@@ -16,6 +16,7 @@ model User {
   name          String?
   emailVerified Boolean
   image         String?
+  isPremiumUser Boolean   @default(false)
   createdAt     DateTime
   updatedAt     DateTime
   sessions      Session[]

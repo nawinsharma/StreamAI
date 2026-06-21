@@ -15,6 +15,7 @@
     "db:push": "prisma db push"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^2.0.83",
     "@ai-sdk/google": "^2.0.5",
     "@hookform/resolvers": "^5.2.1",
     "@langchain/community": "^0.3.58",

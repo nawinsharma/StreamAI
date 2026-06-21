@@ -3,6 +3,7 @@ export interface User {
    name: string;
    email: string;
    emailVerified: boolean;
+   isPremiumUser: boolean;
    createdAt: Date;
    updatedAt: Date;
    image?: string | null | undefined;

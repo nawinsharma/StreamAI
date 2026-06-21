@@ -5,10 +5,11 @@ import {
   handleWeatherRequest, 
   createWeatherStream 
 } from "@/lib/weather-handler";
-import { 
-  normalizeMessages, 
-  handleAIChatRequest 
+import {
+  normalizeMessages,
+  handleAIChatRequest
 } from "@/lib/ai-chat-handler";
+import { resolveAllowedModelId } from "@/lib/models";
 
 /**
  * Extracts text content from a message, handling both string and array formats
@@ -48,6 +49,15 @@ export async function POST(req: NextRequest) {
     // Extract context
     const chatId: string | undefined = body?.chatId;
     const userId = session.user.id as string;
+
+    // Resolve the model: premium-only models are gated by isPremiumUser.
+    // Non-premium or unknown requests fall back to the default model.
+    const isPremiumUser = Boolean((session.user as { isPremiumUser?: boolean }).isPremiumUser);
+    const model = resolveAllowedModelId(
+      typeof body?.model === "string" ? body.model : undefined,
+      isPremiumUser
+    );
+
     const lastUser = [...normalized].reverse().find(m => m.role === 'user');
 
     if (!lastUser) {
@@ -96,6 +106,7 @@ export async function POST(req: NextRequest) {
       messages: normalized,
       chatId: chatId, // This is crucial for context maintenance
       userId: userId, // Always authenticated user ID
+      model, // validated against premium status
       attachmentMeta,
     });
 

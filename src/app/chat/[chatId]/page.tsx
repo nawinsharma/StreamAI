@@ -19,6 +19,8 @@ import { Copy, ThumbsUp, ThumbsDown, RotateCcw, Send } from "lucide-react";
 import { WeatherCard, type WeatherPayload } from "@/components/ui/weather";
 import { Markdown } from "@/components/ui/markdown";
 import { ShareButton } from "@/components/ui/share-button";
+import { ModelSelector } from "@/components/chat/model-selector";
+import { DEFAULT_MODEL_ID } from "@/lib/models";
 
 interface Message {
   id: string;
@@ -111,6 +113,7 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
   const [pendingAttachment, setPendingAttachment] = useState<AttachmentMeta | null>(null);
   const [uploading, setUploading] = useState(false);
   const [pendingInitialMessage, setPendingInitialMessage] = useState<string | null>(null);
+  const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_MODEL_ID);
   const hasInitialized = useRef(false);
   const searchParams = useSearchParams();
   const [hasUpdatedTitle, setHasUpdatedTitle] = useState(false);
@@ -119,6 +122,19 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
     const t = setTimeout(scrollToBottom, 200);
     return () => clearTimeout(t);
   }, [elements.length, isLoading, scrollToBottom]);
+
+  // Hydrate the persisted model choice (premium users only; ignored server-side otherwise)
+  useEffect(() => {
+    const stored = typeof window !== "undefined" ? localStorage.getItem("chatModel") : null;
+    if (stored) setSelectedModel(stored);
+  }, []);
+
+  const handleModelChange = useCallback((modelId: string) => {
+    setSelectedModel(modelId);
+    try {
+      localStorage.setItem("chatModel", modelId);
+    } catch {}
+  }, []);
 
   const handleTogglePublic = async (chatId: string) => {
     try {
@@ -212,11 +228,12 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
 
     try {
       // Start streaming API call
-      const requestBody: { chatId: string; messages: Array<{ role: 'user' | 'assistant'; content: string }>; attachmentMeta?: AttachmentMeta } = {
+      const requestBody: { chatId: string; messages: Array<{ role: 'user' | 'assistant'; content: string }>; model: string; attachmentMeta?: AttachmentMeta } = {
         chatId,
         messages: [
           { role: 'user', content: prompt },
         ],
+        model: selectedModel,
       };
 
       // Include attachment metadata if present
@@ -332,7 +349,7 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
     } finally {
       setIsLoading(false);
     }
-  }, [chatId, elements, pendingAttachment, scrollToBottom, isLoading, user, isNewChat, chat, hasUpdatedTitle]);
+  }, [chatId, elements, pendingAttachment, scrollToBottom, isLoading, user, isNewChat, chat, hasUpdatedTitle, selectedModel]);
 
   const fetchChat = useCallback(async () => {
     try {
@@ -687,6 +704,14 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
               </div>
             )}
             
+            <div className="flex items-center">
+              <ModelSelector
+                value={selectedModel}
+                onChange={handleModelChange}
+                disabled={isLoading}
+              />
+            </div>
+
             <div className="flex items-end gap-3">
               <AttachmentButton
                 onFileSelect={handleFileSelect}

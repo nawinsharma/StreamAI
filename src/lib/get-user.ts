@@ -14,6 +14,7 @@ export async function getUser(): Promise<User | null> {
         email: session.user.email,
         name: session.user.name || "",
         emailVerified: session.user.emailVerified,
+        isPremiumUser: Boolean((session.user as { isPremiumUser?: boolean }).isPremiumUser),
         image: session.user.image || null,
         createdAt: session.user.createdAt,
         updatedAt: session.user.updatedAt,
