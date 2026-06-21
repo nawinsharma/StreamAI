@@ -15,6 +15,8 @@ import { createRagChat, addRagMessage, getRagCollections, getRagChatByCollection
 import { useRagStore } from "@/stores/rag-store";
 import { useScrollToBottom } from "@/components/use-scroll-to-bottom";
 import { ShareButton } from "@/components/ui/share-button";
+import { ModelSelector } from "@/components/chat/model-selector";
+import { DEFAULT_MODEL_ID } from "@/lib/models";
 
 interface RagSource {
   content: string;
@@ -61,7 +63,21 @@ const RagChatPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
   const [chatHistory, setChatHistory] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
+  const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_MODEL_ID);
   const [messagesContainerRef, messagesEndRef, scrollToBottom] = useScrollToBottom<HTMLDivElement>();
+
+  // Reuse the same persisted model choice as normal chat (premium users only)
+  useEffect(() => {
+    const stored = typeof window !== "undefined" ? localStorage.getItem("chatModel") : null;
+    if (stored) setSelectedModel(stored);
+  }, []);
+
+  const handleModelChange = useCallback((modelId: string) => {
+    setSelectedModel(modelId);
+    try {
+      localStorage.setItem("chatModel", modelId);
+    } catch {}
+  }, []);
 
   const handleTogglePublic = async (chatId: string) => {
     try {
@@ -357,6 +373,7 @@ const RagChatPage = () => {
           userQuery: userMessage,
           collectionName: chatData.collection.collectionName,
           chatHistory: chatHistory,
+          model: selectedModel,
         }),
       });
 
@@ -575,6 +592,17 @@ const RagChatPage = () => {
             {isLoading && <AISkeletonLoading />}
             
             <div ref={messagesEndRef} data-messages-end />
+          </div>
+        </div>
+
+        {/* Model selector (premium users) — sits in the composer strip above the input's top border */}
+        <div className="bg-background">
+          <div className="max-w-4xl mx-auto px-4 pt-2">
+            <ModelSelector
+              value={selectedModel}
+              onChange={handleModelChange}
+              disabled={isLoading}
+            />
           </div>
         </div>
 

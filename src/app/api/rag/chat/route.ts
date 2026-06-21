@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 import { chatWithCollection } from "@/lib/rag/chat";
+import { resolveAllowedModelId } from "@/lib/models";
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,10 +23,24 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Premium-gate the answer model: non-premium (or signed-out) requests
+    // fall back to the default model regardless of what was requested.
+    const session = await auth.api
+      .getSession({ headers: await headers() })
+      .catch(() => null);
+    const isPremiumUser = Boolean(
+      (session?.user as { isPremiumUser?: boolean } | undefined)?.isPremiumUser
+    );
+    const model = resolveAllowedModelId(
+      typeof body?.model === "string" ? body.model : undefined,
+      isPremiumUser
+    );
+
     const chatResponse = await chatWithCollection(
       userQuery.trim(),
       collectionName,
-      chatHistory
+      chatHistory,
+      model
     );
 
     return NextResponse.json(

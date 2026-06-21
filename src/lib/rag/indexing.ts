@@ -99,7 +99,13 @@ export const indexPdf = async (file: File, collectionName: string) => {
     };
   } catch (error) {
     console.error("PDF indexing error:", error);
-    throw new Error(`Failed to index PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    // A bare "Not Found" / 404 here means the Qdrant cluster is unreachable
+    // (wrong URL or a deleted/suspended cluster), not a problem with the PDF.
+    if (/not found|404/i.test(msg)) {
+      throw new Error("Vector database is unavailable — check QDRANT_URL / QDRANT_API_KEY (the Qdrant cluster may be paused or deleted).");
+    }
+    throw new Error(`Failed to index PDF: ${msg}`);
   }
 };
 

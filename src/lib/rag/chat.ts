@@ -2,7 +2,9 @@ import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
 import { QdrantVectorStore } from "@langchain/qdrant";
 import { QdrantClient } from "@qdrant/js-client-rest";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { generateText } from "ai";
+import { anthropic } from "@ai-sdk/anthropic";
+import { generateText, type LanguageModel } from "ai";
+import { getModelById } from "@/lib/models";
 
 // Validate Google API key
 const validateGoogleAPIKey = () => {
@@ -38,6 +40,24 @@ const createQdrantClient = () => {
   } as ConstructorParameters<typeof QdrantClient>[0] & { checkCompatibility: boolean });
 };
 
+interface RagGenConfig {
+  model: LanguageModel;
+  k: number; // chunks to retrieve — higher = more of the document in context
+  maxOutputTokens: number;
+}
+
+// Resolves the generation model + retrieval breadth for a RAG answer.
+// Embeddings always stay on Google (Anthropic has no embeddings API); only the
+// answer model can be Claude. Premium/Claude gets a larger context window, so
+// we retrieve far more chunks to cover the whole document.
+function resolveRagGenConfig(modelId?: string): RagGenConfig {
+  const selected = getModelById(modelId);
+  if (selected?.provider === "anthropic") {
+    return { model: anthropic(selected.id), k: 40, maxOutputTokens: 4096 };
+  }
+  return { model: google("gemini-2.5-flash"), k: 15, maxOutputTokens: 2048 };
+}
+
 export interface RagChatResponse {
   response: string;
   sources: Array<{
@@ -50,9 +70,11 @@ export interface RagChatResponse {
 export const chatWithCollection = async (
   userQuery: string,
   collectionName: string,
-  chatHistory?: Array<{ role: 'user' | 'assistant'; content: string }>
+  chatHistory?: Array<{ role: 'user' | 'assistant'; content: string }>,
+  modelId?: string
 ): Promise<RagChatResponse> => {
   try {
+    const gen = resolveRagGenConfig(modelId);
     console.log("🔍 Searching in collection:", collectionName);
     console.log("💬 User query:", userQuery);
 
@@ -65,9 +87,10 @@ export const chatWithCollection = async (
       }
     );
 
-    // Retrieve relevant documents
-    const retriever = vectorStore.asRetriever({ 
-      k: 5, // Number of documents to retrieve
+    // Retrieve relevant documents. k scales with the model's context window so
+    // large documents (30-40+ pages) contribute context from across all pages.
+    const retriever = vectorStore.asRetriever({
+      k: gen.k,
       searchType: "similarity",
     });
 
@@ -102,13 +125,13 @@ Guidelines:
 
     console.log("🤖 Generating response...");
 
-    // Generate response using Google via AI SDK
+    // Generate response (Claude for premium selections, Gemini otherwise)
     const { text } = await generateText({
-      model: google('gemini-2.5-flash'), // Using same model as city-parser
+      model: gen.model,
       system: systemPrompt,
       prompt,
       temperature: 0.1,
-      maxOutputTokens: 1000,
+      maxOutputTokens: gen.maxOutputTokens,
     });
 
     const response = text || "I apologize, but I couldn't generate a response.";
