@@ -18,6 +18,7 @@ import { useRagStore } from "@/stores/rag-store";
 import { toast } from "sonner";
 import { createRagCollection } from "@/app/actions/ragActions";
 import { useUser } from "@/context/UserContext";
+import { RAG_DOCUMENT_ACCEPT, RAG_DOCUMENT_EXTENSIONS, isSupportedRagDocument } from "@/lib/rag/limits";
 
 interface RagUploadModalProps {
   open: boolean;
@@ -58,8 +59,8 @@ export function RagUploadModal({ open, onOpenChange, initialType }: RagUploadMod
     {
       type: 'pdf' as UploadType,
       icon: Upload,
-      title: 'Upload PDF',
-      description: 'Extract and index content from PDF documents',
+      title: 'Upload Document',
+      description: 'Index a PDF, Word, PowerPoint, Excel, CSV, or text file',
       color: 'text-red-600',
       bgColor: 'bg-red-100 hover:bg-red-200 dark:bg-red-900 dark:hover:bg-red-800',
     },
@@ -112,8 +113,8 @@ export function RagUploadModal({ open, onOpenChange, initialType }: RagUploadMod
       return;
     }
 
-    if (file.type !== 'application/pdf') {
-      toast.error('Please select a PDF file');
+    if (!isSupportedRagDocument(file.name)) {
+      toast.error(`Unsupported file type. Allowed: ${RAG_DOCUMENT_EXTENSIONS.join(', ')}`);
       return;
     }
 
@@ -148,8 +149,8 @@ export function RagUploadModal({ open, onOpenChange, initialType }: RagUploadMod
       });
       return;
     }
-    if (file.type !== 'application/pdf') {
-      toast.error('Please drop a PDF file');
+    if (!isSupportedRagDocument(file.name)) {
+      toast.error(`Unsupported file type. Allowed: ${RAG_DOCUMENT_EXTENSIONS.join(', ')}`);
       return;
     }
 
@@ -297,14 +298,16 @@ export function RagUploadModal({ open, onOpenChange, initialType }: RagUploadMod
           >
             <Upload className="mx-auto h-16 w-16 text-gray-400 mb-6" />
             <p className="text-xl font-medium text-gray-900 dark:text-white mb-3">
-              {isDragging ? 'Drop your PDF here' : 'Upload PDF File'}
+              {isDragging ? 'Drop your document here' : 'Upload Document'}
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">
-              Drag and drop your PDF file here, or click to browse
+              Drag and drop your file here, or click to browse
+              <br />
+              <span className="text-xs">PDF, Word (.docx), PowerPoint (.pptx), Excel (.xlsx/.xls/.csv), or text (.txt/.md)</span>
             </p>
-            <Button 
-              type="button" 
-              variant="outline" 
+            <Button
+              type="button"
+              variant="outline"
               onClick={handleFileSelect}
               disabled={isLoading}
               className="h-12 px-6 text-base"
@@ -314,7 +317,7 @@ export function RagUploadModal({ open, onOpenChange, initialType }: RagUploadMod
             <input
               ref={fileInputRef}
               type="file"
-              accept=".pdf"
+              accept={RAG_DOCUMENT_ACCEPT}
               onChange={handleFileChange}
               className="hidden"
             />

@@ -1,5 +1,9 @@
 import { useEffect, useRef, RefObject, useCallback } from "react";
 
+// Distance (px) from the bottom within which we consider the user "at bottom"
+// and keep auto-scrolling. Scroll further up than this and auto-scroll pauses.
+const BOTTOM_THRESHOLD = 100;
+
 export function useScrollToBottom<T extends HTMLElement>(): [
   RefObject<T | null>,
   RefObject<T | null>,
@@ -8,14 +12,18 @@ export function useScrollToBottom<T extends HTMLElement>(): [
   const containerRef = useRef<T | null>(null);
   const endRef = useRef<T | null>(null);
 
+  // Whether auto-scroll is active. Flips off when the user scrolls up,
+  // back on when they return to the bottom.
+  const shouldAutoScrollRef = useRef(true);
+
   const scrollToBottom = useCallback(() => {
     const container = containerRef.current;
     const end = endRef.current;
 
-    if (container && end) {
+    if (container && end && shouldAutoScrollRef.current) {
       // Use smooth scrolling for better UX
-      end.scrollIntoView({ 
-        behavior: "smooth", 
+      end.scrollIntoView({
+        behavior: "smooth",
         block: "end",
         inline: "nearest"
       });
@@ -43,18 +51,18 @@ export function useScrollToBottom<T extends HTMLElement>(): [
         attributes: true,
       });
 
-      // Also listen for scroll events to handle dynamic content loading
+      // Track the user's scroll position to decide whether to keep
+      // auto-scrolling. If they swipe up, pause; if they return to the
+      // bottom, resume.
       const handleScroll = () => {
-        // If user scrolls near bottom, auto-scroll to very bottom
         const { scrollTop, scrollHeight, clientHeight } = container;
-        const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100;
-        
-        if (isNearBottom) {
-          scrollToBottom();
-        }
+        const isNearBottom =
+          scrollTop + clientHeight >= scrollHeight - BOTTOM_THRESHOLD;
+
+        shouldAutoScrollRef.current = isNearBottom;
       };
 
-      container.addEventListener('scroll', handleScroll);
+      container.addEventListener('scroll', handleScroll, { passive: true });
 
       return () => {
         observer.disconnect();

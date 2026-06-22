@@ -21,3 +21,30 @@ export const RAG_LIMITS = {
   MAX_INDEXING_OPERATIONS_PER_DAY: 5, // Maximum indexing operations per user per day
 } as const;
 
+// Document upload (the "Upload Document" tile) — supported file types.
+// PDF/DOCX/PPTX/XLSX/XLS/CSV/TXT/MD all get text-extracted and indexed.
+export const RAG_DOCUMENT_EXTENSIONS = [
+  "pdf",
+  "docx",
+  "pptx",
+  "xlsx",
+  "xls",
+  "csv",
+  "txt",
+  "md",
+] as const;
+
+export type RagDocumentExtension = (typeof RAG_DOCUMENT_EXTENSIONS)[number];
+
+// `accept` attribute for the file input.
+export const RAG_DOCUMENT_ACCEPT = RAG_DOCUMENT_EXTENSIONS.map((e) => `.${e}`).join(",");
+
+export function getFileExtension(name: string): string {
+  const dot = name.lastIndexOf(".");
+  return dot === -1 ? "" : name.slice(dot + 1).toLowerCase();
+}
+
+export function isSupportedRagDocument(name: string): boolean {
+  return (RAG_DOCUMENT_EXTENSIONS as readonly string[]).includes(getFileExtension(name));
+}
+

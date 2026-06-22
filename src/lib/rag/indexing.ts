@@ -6,7 +6,11 @@ import { Document } from "@langchain/core/documents";
 import axios from "axios";
 import { parse } from "node-html-parser";
 import { Innertube } from "youtubei.js";
-import { RAG_LIMITS } from "./limits";
+import mammoth from "mammoth";
+import * as XLSX from "xlsx";
+import { parseOfficeAsync } from "officeparser";
+import os from "os";
+import { RAG_LIMITS, RAG_DOCUMENT_EXTENSIONS, getFileExtension } from "./limits";
 
 // Validate Google API key
 const validateGoogleAPIKey = () => {
@@ -39,20 +43,71 @@ const qdrantConfig = {
   apiKey: process.env.QDRANT_API_KEY,
 };
 
-export const indexPdf = async (file: File, collectionName: string) => {
+// Extracts text into LangChain Documents for any supported file type.
+// PDF -> one Document per page; spreadsheets -> one per sheet; others -> one.
+const loadDocumentsFromFile = async (file: File): Promise<Document[]> => {
+  const ext = getFileExtension(file.name);
+
+  switch (ext) {
+    case "pdf": {
+      const loader = new PDFLoader(file);
+      const pages = await loader.load();
+      if (pages.length > RAG_LIMITS.PDF_MAX_PAGES) {
+        throw new Error(`PDF has too many pages (${pages.length}). Maximum is ${RAG_LIMITS.PDF_MAX_PAGES} pages.`);
+      }
+      return pages;
+    }
+    case "docx": {
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const { value } = await mammoth.extractRawText({ buffer });
+      return [new Document({ pageContent: value, metadata: { source: file.name, fileType: "docx" } })];
+    }
+    case "pptx": {
+      const buffer = Buffer.from(await file.arrayBuffer());
+      // officeparser extracts to disk; default is a relative dir (read-only on
+      // serverless). Point it at the OS temp dir (/tmp) so it works on Vercel.
+      const text = await parseOfficeAsync(buffer, { tempFilesLocation: os.tmpdir() });
+      return [new Document({ pageContent: text, metadata: { source: file.name, fileType: "pptx" } })];
+    }
+    case "xlsx":
+    case "xls":
+    case "csv": {
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const workbook = XLSX.read(buffer, { type: "buffer" });
+      return workbook.SheetNames
+        .map((sheetName) => {
+          const csv = XLSX.utils.sheet_to_csv(workbook.Sheets[sheetName]);
+          return new Document({
+            pageContent: `Sheet: ${sheetName}\n${csv}`,
+            metadata: { source: file.name, fileType: ext, sheet: sheetName },
+          });
+        })
+        .filter((doc) => doc.pageContent.trim().length > `Sheet: `.length);
+    }
+    case "txt":
+    case "md": {
+      const text = await file.text();
+      return [new Document({ pageContent: text, metadata: { source: file.name, fileType: ext } })];
+    }
+    default:
+      throw new Error(
+        `Unsupported file type: .${ext}. Supported types: ${RAG_DOCUMENT_EXTENSIONS.join(", ")}.`
+      );
+  }
+};
+
+export const indexDocument = async (file: File, collectionName: string) => {
   try {
     // Check file size limit
     if (file.size > RAG_LIMITS.PDF_MAX_FILE_SIZE) {
-      throw new Error(`PDF file is too large. Maximum size is ${RAG_LIMITS.PDF_MAX_FILE_SIZE / (1024 * 1024)}MB.`);
+      throw new Error(`File is too large. Maximum size is ${RAG_LIMITS.PDF_MAX_FILE_SIZE / (1024 * 1024)}MB.`);
     }
 
-    // Load PDF
-    const loader = new PDFLoader(file);
-    const docs = await loader.load();
+    // Extract text from the document (PDF/DOCX/PPTX/XLSX/CSV/TXT/MD)
+    const docs = await loadDocumentsFromFile(file);
 
-    // Check page limit
-    if (docs.length > RAG_LIMITS.PDF_MAX_PAGES) {
-      throw new Error(`PDF has too many pages (${docs.length}). Maximum is ${RAG_LIMITS.PDF_MAX_PAGES} pages.`);
+    if (docs.length === 0 || docs.every((d) => !d.pageContent.trim())) {
+      throw new Error("No readable text could be extracted from this document.");
     }
 
     // Split documents
@@ -98,16 +153,19 @@ export const indexPdf = async (file: File, collectionName: string) => {
       collectionName,
     };
   } catch (error) {
-    console.error("PDF indexing error:", error);
+    console.error("Document indexing error:", error);
     const msg = error instanceof Error ? error.message : 'Unknown error';
     // A bare "Not Found" / 404 here means the Qdrant cluster is unreachable
-    // (wrong URL or a deleted/suspended cluster), not a problem with the PDF.
+    // (wrong URL or a deleted/suspended cluster), not a problem with the document.
     if (/not found|404/i.test(msg)) {
       throw new Error("Vector database is unavailable — check QDRANT_URL / QDRANT_API_KEY (the Qdrant cluster may be paused or deleted).");
     }
-    throw new Error(`Failed to index PDF: ${msg}`);
+    throw new Error(`Failed to index document: ${msg}`);
   }
 };
+
+// Backwards-compatible alias (the upload route historically called indexPdf)
+export const indexPdf = indexDocument;
 
 export const indexWebsite = async (url: string, collectionName: string) => {
   try {

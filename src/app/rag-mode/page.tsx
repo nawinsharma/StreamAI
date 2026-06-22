@@ -19,6 +19,7 @@ import {
   FolderOpen
 } from "lucide-react";
 import { RagUploadModal } from "@/components/rag/rag-upload-modal";
+import { getFileExtension } from "@/lib/rag/limits";
 import { getRagCollections, deleteRagCollection } from "@/app/actions/ragActions";
 import { toast } from "sonner";
 
@@ -139,9 +140,9 @@ const RagDashboard = () => {
               <div className="mx-auto w-12 h-12 bg-red-100 dark:bg-red-900 rounded-lg flex items-center justify-center mb-2">
                 <Upload className="w-6 h-6 text-red-600 dark:text-red-400" />
               </div>
-              <CardTitle className="text-lg">Upload PDF</CardTitle>
+              <CardTitle className="text-lg">Upload Document</CardTitle>
               <CardDescription className="text-sm">
-                Extract and index content from PDF documents
+                Index a PDF, Word, PowerPoint, Excel, CSV, or text file
               </CardDescription>
             </CardHeader>
           </Card>
@@ -234,7 +235,9 @@ const RagDashboard = () => {
                         </div>
                         <div className="flex-shrink-0 ml-2">
                           <Badge className={`${getTypeColor(collection.type)} text-xs`}>
-                            {collection.type}
+                            {collection.type === 'pdf' && collection.fileName
+                              ? (getFileExtension(collection.fileName) || 'doc').toUpperCase()
+                              : collection.type}
                           </Badge>
                         </div>
                       </div>
