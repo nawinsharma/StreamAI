@@ -62,11 +62,39 @@ export function useScrollToBottom<T extends HTMLElement>(): [
         shouldAutoScrollRef.current = isNearBottom;
       };
 
+      // User-initiated upward intent (wheel up / touch drag down) pauses
+      // auto-scroll immediately, even while a programmatic scroll animation
+      // is still in flight — so the stream can't yank the view back down.
+      const handleWheel = (e: WheelEvent) => {
+        if (e.deltaY < 0) {
+          shouldAutoScrollRef.current = false;
+        }
+      };
+
+      let lastTouchY = 0;
+      const handleTouchStart = (e: TouchEvent) => {
+        lastTouchY = e.touches[0]?.clientY ?? 0;
+      };
+      const handleTouchMove = (e: TouchEvent) => {
+        const y = e.touches[0]?.clientY ?? 0;
+        // Finger moving down = scrolling content up = viewing older messages.
+        if (y > lastTouchY) {
+          shouldAutoScrollRef.current = false;
+        }
+        lastTouchY = y;
+      };
+
       container.addEventListener('scroll', handleScroll, { passive: true });
+      container.addEventListener('wheel', handleWheel, { passive: true });
+      container.addEventListener('touchstart', handleTouchStart, { passive: true });
+      container.addEventListener('touchmove', handleTouchMove, { passive: true });
 
       return () => {
         observer.disconnect();
         container.removeEventListener('scroll', handleScroll);
+        container.removeEventListener('wheel', handleWheel);
+        container.removeEventListener('touchstart', handleTouchStart);
+        container.removeEventListener('touchmove', handleTouchMove);
       };
     }
   }, [scrollToBottom]);
