@@ -15,7 +15,9 @@ import { FilePreview } from "@/components/ui/file-preview";
 import { AttachmentButton } from "@/components/ui/attachment-button";
 import { ChatImage } from "@/components/ui/chat-image";
 import { Actions, Action } from "@/components/ui/actions";
-import { Copy, ThumbsUp, ThumbsDown, RotateCcw, Send } from "lucide-react";
+import { Copy, ThumbsUp, ThumbsDown, RotateCcw, Send, Mic } from "lucide-react";
+import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
+import { cn } from "@/lib/utils";
 import { WeatherCard, type WeatherPayload } from "@/components/ui/weather";
 import { Markdown } from "@/components/ui/markdown";
 import { ShareButton } from "@/components/ui/share-button";
@@ -110,6 +112,17 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
   const user = useUser();
   const router = useRouter();
   const [messagesContainerRef, messagesEndRef, scrollToBottom] = useScrollToBottom<HTMLDivElement>();
+
+  // Voice input: append finalized speech to the message box
+  const inputValueRef = useRef(input);
+  inputValueRef.current = input;
+  const { isListening, isSupported: isMicSupported, toggle: toggleMic, stop: stopMic } =
+    useSpeechRecognition({
+      onTranscript: (text) => {
+        const current = inputValueRef.current;
+        setInput(current ? `${current} ${text}` : text);
+      },
+    });
   const [pendingAttachment, setPendingAttachment] = useState<AttachmentMeta | null>(null);
   const [uploading, setUploading] = useState(false);
   const [pendingInitialMessage, setPendingInitialMessage] = useState<string | null>(null);
@@ -720,13 +733,14 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
               />
               
               <Textarea
-                placeholder="Type your message..."
+                placeholder={isListening ? "Listening… speak now" : "Type your message..."}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
                     if (input.trim()) {
+                      stopMic();
                       onSubmit(input.trim());
                     }
                   }
@@ -734,9 +748,25 @@ export default function ChatPage({ params }: { params: Promise<{ chatId: string 
                 className="min-h-[60px] max-h-[200px] resize-none flex-1"
                 disabled={isLoading}
               />
-              
+
+              {isMicSupported && (
+                <Button
+                  type="button"
+                  onClick={toggleMic}
+                  disabled={isLoading}
+                  size="sm"
+                  variant="ghost"
+                  aria-label={isListening ? "Stop voice input" : "Start voice input"}
+                  aria-pressed={isListening}
+                  title={isListening ? "Stop voice input" : "Speak to type"}
+                  className={cn(isListening && "text-red-500 animate-pulse")}
+                >
+                  <Mic className="w-7 h-7" />
+                </Button>
+              )}
+
               <Button
-                onClick={() => onSubmit(input.trim())}
+                onClick={() => { stopMic(); onSubmit(input.trim()); }}
                 disabled={!input.trim() || isLoading}
                 size="sm"
               >
