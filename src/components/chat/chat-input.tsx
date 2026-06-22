@@ -5,7 +5,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { AttachmentButton } from "@/components/ui/attachment-button";
 import { SuggestionQuestions } from "./suggestion-questions";
 import { DESIGN_TOKENS } from "@/lib/constants";
-import { Send } from "lucide-react";
+import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
+import { cn } from "@/lib/utils";
+import { Send, Mic } from "lucide-react";
 
 interface ChatInputProps {
   input: string;
@@ -39,6 +41,18 @@ export const ChatInput = React.memo(({
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const objectUrlRef = useRef<string | null>(null);
 
+  // Keep latest input value so the STT callback can append without stale closures
+  const inputValueRef = useRef(input);
+  inputValueRef.current = input;
+
+  const handleTranscript = useCallback((text: string) => {
+    const current = inputValueRef.current;
+    setInput(current ? `${current} ${text}` : text);
+  }, [setInput]);
+
+  const { isListening, isSupported: isMicSupported, toggle: toggleMic, stop: stopMic } =
+    useSpeechRecognition({ onTranscript: handleTranscript });
+
   const handleSuggestionClick = useCallback((question: string, shouldAutoSubmit: boolean = false) => {
     setInput(question);
     if (shouldAutoSubmit) {
@@ -56,8 +70,9 @@ export const ChatInput = React.memo(({
   const handleFormSubmit = useCallback(async (e: React.FormEvent) => {
     e.stopPropagation();
     e.preventDefault();
+    stopMic();
     await onSubmit(input);
-  }, [onSubmit, input]);
+  }, [onSubmit, input, stopMic]);
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
@@ -67,10 +82,11 @@ export const ChatInput = React.memo(({
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       if (input.trim()) {
+        stopMic();
         onSubmit(input.trim());
       }
     }
-  }, [input, onSubmit]);
+  }, [input, onSubmit, stopMic]);
 
   const isSubmitDisabled = !input.trim() || isLoading;
   const isInputDisabled = isLoading;
@@ -169,10 +185,28 @@ export const ChatInput = React.memo(({
               value={input}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
-              placeholder="Type your message..."
-              className={`${DESIGN_TOKENS.INPUT_MIN_HEIGHT} ${DESIGN_TOKENS.INPUT_MAX_HEIGHT} resize-none pr-12`}
+              placeholder={isListening ? "Listening… speak now" : "Type your message..."}
+              className={`${DESIGN_TOKENS.INPUT_MIN_HEIGHT} ${DESIGN_TOKENS.INPUT_MAX_HEIGHT} resize-none ${isMicSupported ? "pr-20" : "pr-12"}`}
               disabled={isInputDisabled}
             />
+            {isMicSupported && (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={toggleMic}
+                disabled={isInputDisabled}
+                aria-label={isListening ? "Stop voice input" : "Start voice input"}
+                aria-pressed={isListening}
+                title={isListening ? "Stop voice input" : "Speak to type"}
+                className={cn(
+                  `absolute right-11 bottom-2 ${DESIGN_TOKENS.BUTTON_SIZE} p-0`,
+                  isListening && "text-red-500 animate-pulse"
+                )}
+              >
+                <Mic className="w-4 h-4" />
+              </Button>
+            )}
             <Button
               type="submit"
               size="sm"
